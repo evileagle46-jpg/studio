@@ -1,0 +1,2799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Wedding Studio</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+      color: #fff;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .login-container {
+      display: none !important;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .login-container.active {
+      display: flex !important;
+    }
+
+    .login-box {
+      background: #2d2d44;
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #d4af37;
+    }
+
+    .login-box h2 {
+      margin-bottom: 30px;
+      color: #d4af37;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #ccc;
+      font-size: 14px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d4af37;
+      background: #1e1e2e;
+      color: #fff;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #ffd700;
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background: #d4af37;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .login-btn:hover {
+      background: #ffd700;
+      transform: translateY(-2px);
+    }
+
+    .admin-panel {
+      display: none;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .admin-panel.active {
+      display: block;
+    }
+
+    .admin-header {
+      background: linear-gradient(135deg, #d4af37 0%, #ffd700 100%);
+      color: #000;
+      padding: 30px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .admin-header h1 {
+      font-size: 28px;
+    }
+
+    .logout-btn {
+      padding: 10px 20px;
+      background: #000;
+      color: #d4af37;
+      border: 2px solid #d4af37;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .logout-btn:hover {
+      background: #d4af37;
+      color: #000;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #d4af37;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 12px 20px;
+      background: transparent;
+      color: #ccc;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+      color: #d4af37;
+      border-bottom-color: #d4af37;
+    }
+
+    .tab-content {
+      display: none;
+      animation: slideIn 0.3s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .form-section {
+      background: #2d2d44;
+      padding: 30px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      border: 1px solid #d4af37;
+    }
+
+    .form-section h3 {
+      color: #d4af37;
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d4af37;
+      background: #1e1e2e;
+      color: #fff;
+      border-radius: 5px;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 100px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .file-input-wrapper input[type="file"] {
+      position: absolute;
+      left: -9999px;
+    }
+
+    .file-input-label {
+      display: block;
+      padding: 12px;
+      background: #1e1e2e;
+      border: 1px solid #d4af37;
+      border-radius: 5px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+
+    .file-input-label:hover {
+      background: #d4af37;
+      color: #000;
+    }
+
+    .submit-btn {
+      padding: 12px 30px;
+      background: #d4af37;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .submit-btn:hover {
+      background: #ffd700;
+      transform: translateY(-2px);
+    }
+
+    .submit-btn:disabled {
+      background: #666;
+      color: #999;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      background: #2d2d44;
+      border-radius: 10px;
+      border: 1px solid #d4af37;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: #1e1e2e;
+      color: #d4af37;
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #d4af37;
+    }
+
+    td {
+      padding: 15px;
+      border-bottom: 1px solid #444;
+    }
+
+    tr:hover {
+      background: #383850;
+    }
+
+    .delete-btn {
+      padding: 6px 12px;
+      background: #ff4444;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s;
+    }
+
+    .delete-btn:hover {
+      background: #ff0000;
+    }
+
+    .success-msg {
+      background: #4caf50;
+      color: white;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .error-msg {
+      background: #f44336;
+      color: white;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #d4af37;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    @media (max-width: 768px) {
+      .admin-header {
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .tabs {
+        flex-direction: column;
+      }
+
+      .tab-btn {
+        width: 100%;
+        text-align: left;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div class="login-container" id="login-container">
+    <div class="login-box">
+      <h2>Admin Login</h2>
+      <div id="login-error" class="error-msg" style="display: none; margin-bottom: 20px;"></div>
+      <form id="login-form">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" value="admin@studio.com" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" value="admin123" required>
+        </div>
+        <button type="submit" class="submit-btn" id="login-btn">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Panel -->
+  <div class="admin-panel" id="admin-panel">
+    <div class="admin-header">
+      <h1>📊 Admin Panel</h1>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('hero-images')">🎬 Hero Carousel</button>
+      <button class="tab-btn" onclick="switchTab('media-categories')">📂 Media Links</button>
+      <button class="tab-btn" onclick="switchTab('pricing')">💰 Pricing Page</button>
+      <button class="tab-btn" onclick="switchTab('about')">📷 About Page</button>
+      <button class="tab-btn" onclick="switchTab('gallery')">🎨 Gallery</button>
+      <button class="tab-btn" onclick="switchTab('photos')">📸 Photos (Legacy)</button>
+      <button class="tab-btn" onclick="switchTab('videos')">🎥 Videos (Legacy)</button>
+      <button class="tab-btn" onclick="switchTab('testimonials')">⭐ Testimonials</button>
+      <button class="tab-btn" onclick="switchTab('owner')">👤 Owner Profile</button>
+      <button class="tab-btn" onclick="switchTab('enquiries')">💌 Enquiries</button>
+    </div>
+
+    <!-- Hero Images Tab -->
+    <div class="tab-content active" id="hero-images-tab">
+      <div class="form-section">
+        <h3>🎬 Hero Carousel Images</h3>
+        <p style="color: #999; margin-bottom: 1.5rem;">
+          Set the Google Drive folder containing images for the hero carousel (background of "Capturing Timeless Wedding Stories" section)
+        </p>
+        <div id="hero-msg"></div>
+        
+        <div class="form-group">
+          <label>Google Drive Folder Link</label>
+          <input type="text" id="hero-drive-link" placeholder="Paste Google Drive folder link here">
+          <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+            📁 Example: https://drive.google.com/drive/folders/YOUR_FOLDER_ID<br>
+            ⚠️ Make sure the folder is set to "Anyone with the link can view"
+          </small>
+        </div>
+        
+        <button class="submit-btn" onclick="saveHeroImages()">💾 Save Hero Images</button>
+      </div>
+      
+      <div class="form-section">
+        <h3>Current Configuration</h3>
+        <div id="hero-current-config" style="padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; margin-top: 1rem;">
+          <p style="color: #999;">Loading...</p>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <h3>Preview Images</h3>
+        <div id="hero-preview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
+          <p style="color: #999;">No images to preview</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing Page Tab -->
+    <div class="tab-content" id="pricing-tab">
+      <div class="form-section">
+        <h3>💰 Pricing Page Content</h3>
+        <div id="pricing-msg"></div>
+        
+        <h4 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--gold);">Hero Section</h4>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Hero Title</label>
+            <input type="text" id="pricing-hero-title" placeholder="Our Pricing Plans">
+          </div>
+          <div class="form-group">
+            <label>Hero Subtitle</label>
+            <input type="text" id="pricing-hero-subtitle" placeholder="Choose the perfect package for your special day">
+          </div>
+        </div>
+        
+        <h4 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--gold);">Intro Section</h4>
+        <div class="form-group">
+          <label>Intro Heading</label>
+          <input type="text" id="pricing-intro-heading" placeholder="Investment in Memories">
+        </div>
+        <div class="form-group">
+          <label>Intro Text (HTML allowed)</label>
+          <textarea id="pricing-intro-text" rows="4" placeholder="<p>Your wedding day is one of the most important days...</p>"></textarea>
+        </div>
+        
+        <h4 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--gold);">Details Section</h4>
+        <div class="form-group">
+          <label>Details Heading</label>
+          <input type="text" id="pricing-details-heading" placeholder="What's Included">
+        </div>
+        <div class="form-group">
+          <label>Details Text (HTML allowed - use &lt;ul&gt;&lt;li&gt; for lists)</label>
+          <textarea id="pricing-details-text" rows="6" placeholder="<ul><li>Full day coverage</li><li>Professional photography</li></ul>"></textarea>
+        </div>
+        
+        <h4 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--gold);">Note Section</h4>
+        <div class="form-group">
+          <label>Note Heading</label>
+          <input type="text" id="pricing-note-heading" placeholder="Custom Packages">
+        </div>
+        <div class="form-group">
+          <label>Note Text (HTML allowed)</label>
+          <textarea id="pricing-note-text" rows="3" placeholder="<p>We understand every wedding is unique...</p>"></textarea>
+        </div>
+        
+        <h4 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--gold);">Media Files</h4>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Pricing Image</label>
+            <input type="file" id="pricing-image-file" accept="image/png, image/jpeg, image/jpg">
+            <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+              Upload an attractive pricing image (PNG or JPG, any size accepted)</small>
+            </small>
+            <div id="pricing-image-preview" style="margin-top: 1rem;"></div>
+          </div>
+          <div class="form-group">
+            <label>Price List PDF</label>
+            <input type="file" id="pricing-pdf-file" accept=".pdf">
+            <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+              Upload your detailed pricing brochure (PDF format)
+            </small>
+            <div id="pricing-pdf-preview" style="margin-top: 1rem;"></div>
+          </div>
+        </div>
+        
+        <button class="submit-btn" onclick="savePricingContent()">💾 Save Pricing Page</button>
+      </div>
+    </div>
+
+    <!-- Media Categories Tab (NEW) -->
+    <div class="tab-content" id="media-categories-tab">
+      <div class="form-section">
+        <h3>🎬 Add Media Category (Google Drive / YouTube)</h3>
+        <div id="media-category-msg"></div>
+        
+        <div class="form-grid">
+          <div>
+            <div class="form-group">
+              <label>Category Name *</label>
+              <input type="text" id="media-category-name" placeholder="e.g., Wedding Gallery, Highlight Reels">
+            </div>
+          </div>
+          
+          <div>
+            <div class="form-group">
+              <label>Media Type *</label>
+              <select id="media-type" onchange="toggleMediaFields()" style="width: 100%; padding: 12px; border: 1px solid #d4af37; background: #1e1e2e; color: #fff; border-radius: 5px; font-size: 14px;">
+                <option value="image">📸 Images (Google Drive)</option>
+                <option value="video">🎥 Videos (YouTube)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div>
+            <div class="form-group">
+              <label>Status</label>
+              <select id="media-status" style="width: 100%; padding: 12px; border: 1px solid #d4af37; background: #1e1e2e; color: #fff; border-radius: 5px; font-size: 14px;">
+                <option value="true">✅ Active</option>
+                <option value="false">❌ Inactive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Google Drive Field -->
+        <div class="form-group" id="drive-field">
+          <label>Google Drive Folder Link</label>
+          <input type="text" id="drive-folder-link" placeholder="Paste Google Drive folder link here (e.g., https://drive.google.com/drive/folders/...)">
+          <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+            📁 Make sure the folder is set to "Anyone with the link can view"
+          </small>
+        </div>
+        
+        <!-- YouTube Field -->
+        <div class="form-group" id="youtube-field" style="display: none;">
+          <label>YouTube Video or Playlist Link</label>
+          <input type="text" id="youtube-url" placeholder="Paste YouTube video or playlist link here">
+          <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+            🎥 <strong>Supported formats:</strong><br>
+            • Video: https://www.youtube.com/watch?v=VIDEO_ID<br>
+            • Short: https://youtu.be/VIDEO_ID<br>
+            • Playlist: https://www.youtube.com/playlist?list=PLAYLIST_ID<br>
+            • Direct ID: VIDEO_ID (11 characters)<br>
+            <span style="color: #f44336;">⚠️ Note: Some videos may be restricted from embedding</span>
+          </small>
+        </div>
+        
+        <div style="display: flex; gap: 15px;">
+          <button class="submit-btn" onclick="addMediaCategory()">➕ Add Category</button>
+          <button class="submit-btn" onclick="clearMediaForm()" style="background: #666;">🔄 Clear Form</button>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>📋 Media Categories List</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Category Name</th>
+                <th>Type</th>
+                <th>Link/ID</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="media-categories-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- About Page Tab -->
+    <div class="tab-content" id="about-tab">
+      <!-- Equipment Section -->
+      <div class="form-section">
+        <h3>📷 Equipment Management</h3>
+        <div id="equipment-msg"></div>
+        
+        <div class="form-grid">
+          <div>
+            <div class="form-group">
+              <label>Equipment Name *</label>
+              <input type="text" id="equipment-name" placeholder="e.g., Canon EOS R5">
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>Category</label>
+              <input type="text" id="equipment-category" placeholder="e.g., Camera, Lens, Lighting">
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>Display Order</label>
+              <input type="number" id="equipment-order" value="0" min="0">
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="equipment-description" rows="3" placeholder="Brief description of the equipment..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>Equipment Image</label>
+          <input type="file" id="equipment-image-file" accept="image/png, image/jpeg, image/jpg">
+          <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+            Upload equipment photo (PNG or JPG, any size)
+          </small>
+          <div id="equipment-image-preview" style="margin-top: 1rem;"></div>
+        </div>
+        
+        <button class="submit-btn" onclick="addEquipment()">➕ Add Equipment</button>
+      </div>
+
+      <div class="form-section">
+        <h3>📋 Equipment List</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Description</th>
+                <th>Order</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="equipment-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BTS Images Section -->
+      <div class="form-section">
+        <h3>📸 Behind The Scenes Images</h3>
+        <div id="bts-images-msg"></div>
+        <p style="color: #999; margin-bottom: 1.5rem;">
+          Set the Google Drive folder containing BTS (Behind The Scenes) photos
+        </p>
+        
+        <div class="form-group">
+          <label>Google Drive Folder Link</label>
+          <input type="text" id="bts-images-drive-link" placeholder="Paste Google Drive folder link here">
+          <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+            📁 Example: https://drive.google.com/drive/folders/YOUR_FOLDER_ID<br>
+            ⚠️ Make sure the folder is set to "Anyone with the link can view"
+          </small>
+        </div>
+        
+        <button class="submit-btn" onclick="saveBTSImages()">💾 Save BTS Images</button>
+        
+        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+          <h4 style="margin-bottom: 0.5rem;">Current Configuration</h4>
+          <div id="bts-images-current-config">
+            <p style="color: #999;">Loading...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BTS Videos Section -->
+      <div class="form-section">
+        <h3>🎬 Behind The Scenes Videos</h3>
+        <div id="bts-videos-msg"></div>
+        
+        <div class="form-grid">
+          <div>
+            <div class="form-group">
+              <label>Video Title *</label>
+              <input type="text" id="bts-video-title" placeholder="e.g., Wedding Setup BTS">
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>Display Order</label>
+              <input type="number" id="bts-video-order" value="0" min="0">
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>YouTube Video URL *</label>
+          <input type="text" id="bts-video-url" placeholder="Paste YouTube video link here">
+          <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+            🎥 Supported formats: https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID<br>
+            ⚠️ <strong style="color: #ffd700;">IMPORTANT:</strong> Make sure the video allows embedding! Check by clicking "Share" → "Embed" on YouTube.<br>
+            💡 <strong>To enable embedding on your videos:</strong> YouTube Studio → Video Details → Show More → Check "Allow embedding"
+          </small>
+        </div>
+        
+        <button class="submit-btn" onclick="addBTSVideo()">➕ Add BTS Video</button>
+      </div>
+
+      <div class="form-section">
+        <h3>📋 BTS Videos List</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>YouTube ID</th>
+                <th>Order</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bts-videos-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gallery Tab -->
+    <div class="tab-content" id="gallery-tab">
+      <div class="form-section">
+        <h3>🎨 Add Photo Album</h3>
+        <p style="color: #999; margin-bottom: 1.5rem;">
+          Create beautiful photo albums using Google Drive folders. Each album can contain multiple photos.
+        </p>
+        <div id="gallery-msg"></div>
+        
+        <div class="form-grid">
+          <div>
+            <div class="form-group">
+              <label>Album Title *</label>
+              <input type="text" id="album-title" placeholder="e.g., Summer Weddings 2024">
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>Display Order</label>
+              <input type="number" id="album-order" value="0" min="0">
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Album Description</label>
+          <textarea id="album-description" rows="3" placeholder="Brief description of this album..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>Google Drive Folder Link *</label>
+          <input type="text" id="album-drive-link" placeholder="Paste Google Drive folder link here">
+          <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+            📁 Example: https://drive.google.com/drive/folders/YOUR_FOLDER_ID<br>
+            ⚠️ Make sure the folder is set to "Anyone with the link can view"
+          </small>
+        </div>
+        
+        <div class="form-group">
+          <label>Cover Image URL (Optional)</label>
+          <input type="text" id="album-cover-image" placeholder="https://... or leave empty to use first photo">
+          <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+            You can use a Google Drive image URL or any other image URL
+          </small>
+        </div>
+        
+        <button class="submit-btn" onclick="addAlbum()">➕ Add Album</button>
+      </div>
+
+      <div class="form-section">
+        <h3>📋 Albums List</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Photos</th>
+                <th>Order</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="albums-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Photos Tab -->
+    <div class="tab-content" id="photos-tab">
+      <div class="form-section">
+        <h3>Upload Photo</h3>
+        <div id="photo-msg"></div>
+        <div class="form-grid">
+          <div>
+            <div class="form-group">
+              <label>Photo File</label>
+              <div class="file-input-wrapper">
+                <input type="file" id="photo-file" accept="image/*">
+                <label for="photo-file" class="file-input-label">Choose Photo</label>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" id="photo-title" placeholder="e.g., Wedding Day">
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="photo-category" style="width: 100%; padding: 12px; border: 1px solid #d4af37; background: #1e1e2e; color: #fff; border-radius: 5px; font-size: 14px;">
+                <option>Wedding</option>
+                <option>Pre-Wedding</option>
+                <option>Candid</option>
+                <option>Cinematic</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <button class="submit-btn" onclick="uploadPhoto()">Upload Photo</button>
+      </div>
+
+      <div class="form-section">
+        <h3>Photos List</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="photos-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Videos Tab -->
+    <div class="tab-content" id="videos-tab">
+      <div class="form-section">
+        <h3>Upload Video</h3>
+        <div id="video-msg"></div>
+        <div class="form-grid">
+          <div style="grid-column: 1 / -1;">
+            <div class="form-group">
+              <label>Video File</label>
+              <div class="file-input-wrapper">
+                <input type="file" id="video-file" accept="video/*">
+                <label for="video-file" class="file-input-label">Choose Video</label>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" id="video-title" placeholder="e.g., Wedding Highlight">
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>Autoplay</label>
+              <select id="video-autoplay" style="width: 100%; padding: 12px; border: 1px solid #d4af37; background: #1e1e2e; color: #fff; border-radius: 5px; font-size: 14px;">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label>Description</label>
+          <textarea id="video-desc" placeholder="Video description..."></textarea>
+        </div>
+        <button class="submit-btn" onclick="uploadVideo()">Upload Video</button>
+      </div>
+
+      <div class="form-section">
+        <h3>Videos List</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="videos-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Testimonials Tab -->
+    <div class="tab-content" id="testimonials-tab">
+      <div class="form-section">
+        <h3>Add Testimonial</h3>
+        <div id="testimonial-msg"></div>
+        <div class="form-grid">
+          <div>
+            <div class="form-group">
+              <label>Client Name</label>
+              <input type="text" id="testimonial-name" placeholder="e.g., Priya & Raj">
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>Rating</label>
+              <select id="testimonial-rating" style="width: 100%; padding: 12px; border: 1px solid #d4af37; background: #1e1e2e; color: #fff; border-radius: 5px; font-size: 14px;">
+                <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
+                <option value="4">⭐⭐⭐⭐ 4 Stars</option>
+                <option value="3">⭐⭐⭐ 3 Stars</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>Photo URL</label>
+              <input type="url" id="testimonial-photo" placeholder="https://...">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Review</label>
+          <textarea id="testimonial-review" placeholder="Client review..."></textarea>
+        </div>
+        <button class="submit-btn" onclick="addTestimonial()">Add Testimonial</button>
+      </div>
+
+      <div class="form-section">
+        <h3>Testimonials List</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Rating</th>
+                <th>Review</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="testimonials-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Owner Profile Tab -->
+    <div class="tab-content" id="owner-tab">
+      <div class="form-section">
+        <h3>👤 Owner Profile Management</h3>
+        <div id="owner-msg"></div>
+        
+        <!-- Current Owner Photo Display -->
+        <div style="margin-bottom: 30px; text-align: center;">
+          <h4 style="color: #d4af37; margin-bottom: 15px;">Current Owner Photo</h4>
+          <div style="display: inline-block; position: relative; border-radius: 16px; overflow: hidden; border: 3px solid #d4af37; background: #1e1e2e; padding: 10px;">
+            <img id="current-owner-photo" src="" alt="Current Owner Photo" 
+                 style="width: 200px; height: 250px; object-fit: cover; border-radius: 12px; display: none;"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div id="no-photo-placeholder" style="width: 200px; height: 250px; background: linear-gradient(45deg, #d4af37, #ffd700); display: flex; border-radius: 12px; align-items: center; justify-content: center; flex-direction: column; color: #000; font-weight: 600;">
+              <div style="font-size: 48px; margin-bottom: 10px;">📸</div>
+              <div>No Photo</div>
+              <div style="font-size: 12px; opacity: 0.7;">Upload below</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload New Owner Photo -->
+        <div class="form-grid">
+          <div style="grid-column: 1 / -1;">
+            <div class="form-group">
+              <label>Upload New Owner Photo</label>
+              <div class="file-input-wrapper">
+                <input type="file" id="owner-photo-file" accept="image/*">
+                <label for="owner-photo-file" class="file-input-label">
+                  📷 Choose Owner Photo (Recommended: 350x450px)
+                </label>
+              </div>
+              <small style="color: #999; font-size: 12px; margin-top: 5px; display: block;">
+                Best results with portrait photos. Supported formats: JPG, PNG, WebP (Any size accepted)
+              </small>
+            </div>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+          <button class="submit-btn" onclick="uploadOwnerPhoto()">
+            📤 Upload Owner Photo
+          </button>
+          <button class="delete-btn" onclick="deleteOwnerPhoto()" style="padding: 12px 20px;">
+            🗑️ Remove Current Photo
+          </button>
+        </div>
+
+        <!-- Owner Details Management -->
+        <div style="margin-top: 40px; padding-top: 30px; border-top: 2px solid #d4af37;">
+          <h4 style="color: #d4af37; margin-bottom: 20px;">📝 Owner Information</h4>
+          <div class="form-grid">
+            <div>
+              <div class="form-group">
+                <label>Owner Name</label>
+                <input type="text" id="owner-name" value="Kamendra" placeholder="Owner's full name">
+              </div>
+            </div>
+            <div>
+              <div class="form-group">
+                <label>Professional Title</label>
+                <input type="text" id="owner-title" value="Your Wedding Story Architect" placeholder="e.g., Master Photographer">
+              </div>
+            </div>
+            <div>
+              <div class="form-group">
+                <label>Years of Experience</label>
+                <input type="number" id="owner-experience" value="10" placeholder="10" min="1" max="50">
+              </div>
+            </div>
+            <div>
+              <div class="form-group">
+                <label>Weddings Captured</label>
+                <input type="number" id="owner-weddings" value="500" placeholder="500" min="1">
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Professional Description</label>
+            <textarea id="owner-description" rows="4" placeholder="Write about the owner's experience and expertise...">With over a decade of experience capturing love stories across Nepal, Kamendra brings an artistic vision and passionate dedication to every wedding. His cinematic approach transforms your special moments into timeless masterpieces.
+
+Specializing in candid emotions and dramatic storytelling, he has documented over 500+ weddings, creating visual poetry that couples treasure for a lifetime.</textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Personal Quote</label>
+            <textarea id="owner-quote" rows="3" placeholder="A personal message or philosophy...">Every wedding tells a unique story. My mission is to capture not just the moments, but the emotions, the laughter, the tears of joy - creating a visual legacy that will be cherished for generations.</textarea>
+          </div>
+
+          <button class="submit-btn" onclick="updateOwnerInfo()">
+            💾 Update Owner Information
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enquiries Tab -->
+    <div class="tab-content" id="enquiries-tab">
+      <div class="form-section">
+        <h3>Customer Enquiries</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Wedding Date</th>
+                <th>Message</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="enquiries-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let token = null;
+    let socket = null;
+    
+    // Initialize socket only after page loads
+    try {
+      socket = io();
+      socket.on('connect', () => console.log('Socket connected'));
+      socket.on('error', (err) => console.error('Socket error:', err));
+    } catch (err) {
+      console.warn('Socket.io not available:', err);
+    }
+
+    // Login function
+    async function performLogin() {
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const errorDiv = document.getElementById('login-error');
+      const submitBtn = document.getElementById('login-btn');
+      
+      function showError(message) {
+        if (errorDiv) {
+          errorDiv.textContent = message;
+          errorDiv.style.display = 'block';
+        } else {
+          alert(message);
+        }
+      }
+      
+      function hideError() {
+        if (errorDiv) {
+          errorDiv.style.display = 'none';
+          errorDiv.textContent = '';
+        }
+      }
+      
+      if (!emailInput || !passwordInput) {
+        showError('Email or password input not found. Please refresh the page.');
+        return;
+      }
+      
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      
+      if (!email || !password) {
+        showError('Please enter both email and password.');
+        return;
+      }
+      
+      // Hide previous errors
+      hideError();
+      
+      // Disable button during request
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Logging in...';
+      }
+
+      try {
+        console.log('Attempting login with:', email);
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        });
+
+        console.log('Response status:', res.status);
+
+        let data;
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          data = await res.json();
+        } else {
+          const text = await res.text();
+          console.error('Non-JSON response:', text);
+          throw new Error('Server returned invalid response. Status: ' + res.status);
+        }
+
+        console.log('Login response data:', data);
+
+        if (res.ok && data && data.token) {
+          token = data.token;
+          localStorage.setItem('adminToken', token);
+          document.getElementById('login-container').classList.remove('active');
+          document.getElementById('admin-panel').classList.add('active');
+          loadAllData();
+        } else {
+          const errorMsg = data && data.error ? data.error : 'Invalid credentials';
+          showError('Login failed: ' + errorMsg + '\n\nUse: Email: admin@studio.com, Password: admin123');
+        }
+      } catch (err) {
+        console.error('Login error:', err);
+        showError('Login failed: ' + err.message + '\n\nPlease check:\n1. Server is running on http://localhost:3000\n2. Check browser console (F12) for details');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Login';
+        }
+      }
+    }
+
+    // Make performLogin globally accessible for testing
+    window.performLogin = performLogin;
+    
+    // Login Handler
+    function setupLoginHandlers() {
+      console.log('Setting up login handler...');
+      
+      const loginForm = document.getElementById('login-form');
+      const loginBtn = document.getElementById('login-btn');
+      
+      if (!loginForm) {
+        console.error('Login form not found!');
+        setTimeout(setupLoginHandlers, 100); // Retry after 100ms
+        return;
+      }
+      
+      // Remove existing listeners by cloning the form
+      const newForm = loginForm.cloneNode(true);
+      loginForm.parentNode.replaceChild(newForm, loginForm);
+      
+      const newLoginForm = document.getElementById('login-form');
+      const newLoginBtn = document.getElementById('login-btn');
+      
+      // Form submit handler
+      newLoginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Form submit event fired');
+        performLogin();
+        return false;
+      });
+      
+      // Direct button click handler (backup)
+      if (newLoginBtn) {
+        newLoginBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Button click event fired');
+          performLogin();
+          return false;
+        });
+      }
+      
+      console.log('Login handlers attached successfully');
+    }
+    
+    // Check if already logged in on page load
+    function checkExistingLogin() {
+      const savedToken = localStorage.getItem('adminToken');
+      if (savedToken) {
+        token = savedToken;
+        document.getElementById('login-container').classList.remove('active');
+        document.getElementById('admin-panel').classList.add('active');
+        loadAllData();
+        console.log('User already logged in');
+      } else {
+        // Show login form if not logged in
+        document.getElementById('login-container').classList.add('active');
+        document.getElementById('admin-panel').classList.remove('active');
+        console.log('No existing login found, showing login form');
+      }
+    }
+
+    // Setup when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        checkExistingLogin();
+        setupLoginHandlers();
+      });
+    } else {
+      checkExistingLogin();
+      setupLoginHandlers();
+    }
+    
+    // Also setup on window load as backup
+    window.addEventListener('load', function() {
+      console.log('Window loaded, verifying login setup...');
+      const loginForm = document.getElementById('login-form');
+      if (loginForm) {
+        console.log('Login form found and ready');
+      } else {
+        console.error('Login form still not found after window load!');
+      }
+      // Double check login state
+      checkExistingLogin();
+    });
+
+    function logout() {
+      token = null;
+      localStorage.removeItem('adminToken');
+      document.getElementById('login-container').classList.add('active');
+      document.getElementById('admin-panel').classList.remove('active');
+      const loginForm = document.getElementById('login-form');
+      if (loginForm) {
+        loginForm.reset();
+      }
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(tabName + '-tab').classList.add('active');
+      event.target.classList.add('active');
+      
+      // Load data when switching to specific tabs
+      if (tabName === 'hero-images') {
+        loadHeroImagesConfig();
+        loadHeroImagesPreview();
+      } else if (tabName === 'media-categories') {
+        loadMediaCategories();
+      } else if (tabName === 'pricing') {
+        loadPricingContent();
+      } else if (tabName === 'about') {
+        loadEquipment();
+        loadBTSImagesConfig();
+        loadBTSVideos();
+      } else if (tabName === 'gallery') {
+        loadAlbums();
+      }
+    }
+
+    // ========================================
+    // MEDIA CATEGORIES FUNCTIONS
+    // ========================================
+    
+    function toggleMediaFields() {
+      const mediaType = document.getElementById('media-type').value;
+      const driveField = document.getElementById('drive-field');
+      const youtubeField = document.getElementById('youtube-field');
+      
+      if (mediaType === 'image') {
+        driveField.style.display = 'block';
+        youtubeField.style.display = 'none';
+      } else {
+        driveField.style.display = 'none';
+        youtubeField.style.display = 'block';
+      }
+    }
+    
+    function clearMediaForm() {
+      document.getElementById('media-category-name').value = '';
+      document.getElementById('drive-folder-link').value = '';
+      document.getElementById('youtube-url').value = '';
+      document.getElementById('media-type').value = 'image';
+      document.getElementById('media-status').value = 'true';
+      toggleMediaFields();
+      
+      // Remove edit mode
+      const form = document.querySelector('#media-categories-tab .form-section');
+      form.dataset.editId = '';
+      document.querySelector('#media-categories-tab .submit-btn').textContent = '➕ Add Category';
+    }
+    
+    async function addMediaCategory() {
+      const categoryName = document.getElementById('media-category-name').value.trim();
+      const mediaType = document.getElementById('media-type').value;
+      const driveFolderLink = document.getElementById('drive-folder-link').value.trim();
+      const youtubeUrl = document.getElementById('youtube-url').value.trim();
+      const status = document.getElementById('media-status').value === 'true';
+      const msgDiv = document.getElementById('media-category-msg');
+      
+      if (!categoryName) {
+        msgDiv.textContent = 'Please enter a category name';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+      
+      if (mediaType === 'image' && !driveFolderLink) {
+        msgDiv.textContent = 'Please enter a Google Drive folder link';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+      
+      if (mediaType === 'video' && !youtubeUrl) {
+        msgDiv.textContent = 'Please enter a YouTube URL';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+      
+      const data = {
+        category_name: categoryName,
+        media_type: mediaType,
+        drive_folder_link: mediaType === 'image' ? driveFolderLink : null,
+        youtube_url: mediaType === 'video' ? youtubeUrl : null,
+        status: status
+      };
+      
+      try {
+        msgDiv.innerHTML = '<span class="loading"></span> Saving...';
+        msgDiv.className = 'success-msg';
+        msgDiv.style.display = 'block';
+        
+        // Check if we're editing
+        const form = document.querySelector('#media-categories-tab .form-section');
+        const editId = form.dataset.editId;
+        
+        const url = editId ? `/api/media-categories/${editId}` : '/api/media-categories';
+        const method = editId ? 'PUT' : 'POST';
+        
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success) {
+          msgDiv.textContent = editId ? 'Category updated successfully!' : 'Category added successfully!';
+          msgDiv.className = 'success-msg';
+          clearMediaForm();
+          loadMediaCategories();
+        } else {
+          msgDiv.textContent = 'Error: ' + (result.error || 'Failed to save category');
+          msgDiv.className = 'error-msg';
+        }
+      } catch (err) {
+        console.error('Error saving media category:', err);
+        msgDiv.textContent = 'Error: ' + err.message;
+        msgDiv.className = 'error-msg';
+      }
+    }
+    
+    // ========================================
+    // HERO IMAGES FUNCTIONS
+    // ========================================
+    
+    async function saveHeroImages() {
+      const msgDiv = document.getElementById('hero-msg');
+      const driveFolderLink = document.getElementById('hero-drive-link').value.trim();
+      
+      if (!driveFolderLink) {
+        msgDiv.textContent = 'Please enter a Google Drive folder link';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/hero-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ drive_folder_link: driveFolderLink })
+        });
+        
+        // Check if response is JSON
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Server returned non-JSON response. Please restart the server.');
+        }
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          msgDiv.textContent = '✅ Hero images saved successfully!';
+          msgDiv.className = 'success-msg';
+          msgDiv.style.display = 'block';
+          
+          setTimeout(() => {
+            msgDiv.style.display = 'none';
+          }, 3000);
+          
+          loadHeroImagesConfig();
+          loadHeroImagesPreview();
+        } else {
+          msgDiv.textContent = 'Error: ' + (result.error || 'Failed to save');
+          msgDiv.className = 'error-msg';
+          msgDiv.style.display = 'block';
+        }
+      } catch (err) {
+        console.error('Error saving hero images:', err);
+        msgDiv.textContent = 'Error: ' + err.message;
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+      }
+    }
+    
+    async function loadHeroImagesConfig() {
+      try {
+        const res = await fetch('/api/hero-images');
+        
+        // Check if response is JSON
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Server returned non-JSON response');
+          document.getElementById('hero-current-config').innerHTML = '<p style="color: #f44336;">⚠️ Server error. Please restart the server.</p>';
+          return;
+        }
+        
+        const config = await res.json();
+        
+        const configDiv = document.getElementById('hero-current-config');
+        
+        if (config && config.drive_folder_id) {
+          configDiv.innerHTML = `
+            <p><strong>Folder ID:</strong> ${config.drive_folder_id}</p>
+            <p><strong>Status:</strong> <span style="color: #4caf50;">Active</span></p>
+            <p><strong>Created:</strong> ${new Date(config.created_at).toLocaleString()}</p>
+            <button class="delete-btn" onclick="deleteHeroConfig(${config.id})" style="margin-top: 1rem;">🗑️ Remove</button>
+          `;
+          
+          document.getElementById('hero-drive-link').value = `https://drive.google.com/drive/folders/${config.drive_folder_id}`;
+        } else {
+          configDiv.innerHTML = '<p style="color: #999;">No hero images configured yet</p>';
+        }
+      } catch (err) {
+        console.error('Error loading hero config:', err);
+        document.getElementById('hero-current-config').innerHTML = '<p style="color: #f44336;">Error: ' + err.message + '</p>';
+      }
+    }
+    
+    async function loadHeroImagesPreview() {
+      try {
+        const res = await fetch('/api/hero-drive-images');
+        
+        // Check if response is JSON
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Server returned non-JSON response');
+          document.getElementById('hero-preview').innerHTML = '<p style="color: #f44336;">⚠️ Server error. Please restart the server.</p>';
+          return;
+        }
+        
+        const data = await res.json();
+        
+        const previewDiv = document.getElementById('hero-preview');
+        
+        if (data.images && data.images.length > 0) {
+          previewDiv.innerHTML = data.images.map(img => `
+            <div style="position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 16/9;">
+              <img src="${img.url}" alt="${img.name}" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+          `).join('');
+        } else {
+          previewDiv.innerHTML = '<p style="color: #999;">No images found in the folder</p>';
+        }
+      } catch (err) {
+        console.error('Error loading hero preview:', err);
+        document.getElementById('hero-preview').innerHTML = '<p style="color: #f44336;">Error: ' + err.message + '</p>';
+      }
+    }
+    
+    async function deleteHeroConfig(id) {
+      if (!confirm('Are you sure you want to remove the hero images configuration?')) return;
+      
+      try {
+        const res = await fetch(`/api/hero-images/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+        
+        if (result.success) {
+          loadHeroImagesConfig();
+          loadHeroImagesPreview();
+          document.getElementById('hero-drive-link').value = '';
+        }
+      } catch (err) {
+        console.error('Error deleting hero config:', err);
+      }
+    }
+    
+    // ========================================
+    // PRICING PAGE FUNCTIONS
+    // ========================================
+    
+    let pricingImageUrl = '';
+    let pricingPdfUrl = '';
+    
+    async function loadPricingContent() {
+      try {
+        const res = await fetch('/api/pricing');
+        const data = await res.json();
+        
+        if (data) {
+          document.getElementById('pricing-hero-title').value = data.hero_title || '';
+          document.getElementById('pricing-hero-subtitle').value = data.hero_subtitle || '';
+          document.getElementById('pricing-intro-heading').value = data.intro_heading || '';
+          document.getElementById('pricing-intro-text').value = data.intro_text || '';
+          document.getElementById('pricing-details-heading').value = data.details_heading || '';
+          document.getElementById('pricing-details-text').value = data.details_text || '';
+          document.getElementById('pricing-note-heading').value = data.note_heading || '';
+          document.getElementById('pricing-note-text').value = data.note_text || '';
+          
+          pricingImageUrl = data.image_url || '';
+          pricingPdfUrl = data.pdf_url || '';
+          
+          // Show previews
+          if (pricingImageUrl) {
+            document.getElementById('pricing-image-preview').innerHTML = `
+              <img src="${pricingImageUrl}" style="max-width: 200px; border-radius: 8px; margin-top: 0.5rem;">
+              <p style="color: #4caf50; margin-top: 0.5rem;">✓ Image uploaded</p>
+            `;
+          }
+          
+          if (pricingPdfUrl) {
+            document.getElementById('pricing-pdf-preview').innerHTML = `
+              <a href="${pricingPdfUrl}" target="_blank" style="color: var(--gold);">📄 View current PDF</a>
+              <p style="color: #4caf50; margin-top: 0.5rem;">✓ PDF uploaded</p>
+            `;
+          }
+        }
+      } catch (err) {
+        console.error('Error loading pricing content:', err);
+      }
+    }
+    
+    async function savePricingContent() {
+      const msgDiv = document.getElementById('pricing-msg');
+      msgDiv.style.display = 'block';
+      msgDiv.textContent = 'Saving...';
+      msgDiv.className = '';
+      
+      try {
+        // Upload image if selected
+        const imageFile = document.getElementById('pricing-image-file').files[0];
+        if (imageFile) {
+          // Validate file type on client side
+          const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+          if (!allowedTypes.includes(imageFile.type)) {
+            msgDiv.textContent = '❌ Only PNG and JPG images are allowed';
+            msgDiv.className = 'error-msg';
+            return;
+          }
+          
+          msgDiv.textContent = 'Uploading image...';
+          
+          const imageFormData = new FormData();
+          imageFormData.append('file', imageFile);
+          
+          const imageRes = await fetch('/api/pricing/upload-image', {
+            method: 'POST',
+            body: imageFormData
+          });
+          
+          const imageResult = await imageRes.json();
+          if (imageResult.success) {
+            pricingImageUrl = imageResult.url;
+            msgDiv.textContent = '✓ Image uploaded. Saving content...';
+          } else {
+            msgDiv.textContent = 'Error uploading image: ' + (imageResult.error || 'Unknown error');
+            msgDiv.className = 'error-msg';
+            return;
+          }
+        }
+        
+        // Upload PDF if selected
+        const pdfFile = document.getElementById('pricing-pdf-file').files[0];
+        if (pdfFile) {
+          // Validate file type
+          if (pdfFile.type !== 'application/pdf') {
+            msgDiv.textContent = '❌ Only PDF files are allowed for brochure';
+            msgDiv.className = 'error-msg';
+            return;
+          }
+          
+          msgDiv.textContent = 'Uploading PDF...';
+          
+          const pdfFormData = new FormData();
+          pdfFormData.append('file', pdfFile);
+          
+          const pdfRes = await fetch('/api/pricing/upload-pdf', {
+            method: 'POST',
+            body: pdfFormData
+          });
+          
+          const pdfResult = await pdfRes.json();
+          if (pdfResult.success) {
+            pricingPdfUrl = pdfResult.url;
+            msgDiv.textContent = '✓ PDF uploaded. Saving content...';
+          } else {
+            msgDiv.textContent = 'Error uploading PDF: ' + (pdfResult.error || 'Unknown error');
+            msgDiv.className = 'error-msg';
+            return;
+          }
+        }
+        
+        // Save all content
+        msgDiv.textContent = 'Saving pricing content...';
+        
+        const data = {
+          hero_title: document.getElementById('pricing-hero-title').value,
+          hero_subtitle: document.getElementById('pricing-hero-subtitle').value,
+          intro_heading: document.getElementById('pricing-intro-heading').value,
+          intro_text: document.getElementById('pricing-intro-text').value,
+          details_heading: document.getElementById('pricing-details-heading').value,
+          details_text: document.getElementById('pricing-details-text').value,
+          note_heading: document.getElementById('pricing-note-heading').value,
+          note_text: document.getElementById('pricing-note-text').value,
+          image_url: pricingImageUrl,
+          pdf_url: pricingPdfUrl
+        };
+        
+        const res = await fetch('/api/pricing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          msgDiv.textContent = '✅ Pricing page saved successfully!';
+          msgDiv.className = 'success-msg';
+          
+          setTimeout(() => {
+            msgDiv.style.display = 'none';
+          }, 3000);
+          
+          // Clear file inputs
+          document.getElementById('pricing-image-file').value = '';
+          document.getElementById('pricing-pdf-file').value = '';
+          
+          loadPricingContent();
+        } else {
+          msgDiv.textContent = 'Error: ' + (result.error || 'Failed to save');
+          msgDiv.className = 'error-msg';
+        }
+      } catch (err) {
+        console.error('Error saving pricing:', err);
+        msgDiv.textContent = 'Error: ' + err.message;
+        msgDiv.className = 'error-msg';
+      }
+    }
+    
+    async function loadMediaCategories() {
+      try {
+        const res = await fetch('/api/media-categories');
+        
+        // Check if response is JSON
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Server returned non-JSON response');
+          const tbody = document.getElementById('media-categories-table');
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state" style="color: #f44336;">⚠️ Error: Server configuration issue. Please check if the database table exists. Run database.sql in Neon dashboard.</td></tr>';
+          return;
+        }
+        
+        const categories = await res.json();
+        const tbody = document.getElementById('media-categories-table');
+        tbody.innerHTML = '';
+        
+        if (categories.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No media categories yet. Add your first Google Drive or YouTube link above!</td></tr>';
+          return;
+        }
+        
+        categories.forEach(cat => {
+          const linkInfo = cat.media_type === 'image' 
+            ? (cat.drive_folder_id || 'Not set')
+            : (cat.youtube_url ? cat.youtube_url.substring(0, 40) + '...' : 'Not set');
+          
+          const statusBadge = cat.status 
+            ? '<span style="color: #4caf50;">✅ Active</span>' 
+            : '<span style="color: #999;">❌ Inactive</span>';
+          
+          const typeIcon = cat.media_type === 'image' ? '📸 Images' : '🎥 Videos';
+          
+          tbody.innerHTML += `
+            <tr>
+              <td>${cat.id}</td>
+              <td><strong>${cat.category_name}</strong></td>
+              <td>${typeIcon}</td>
+              <td style="font-size: 11px; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${linkInfo}</td>
+              <td>${statusBadge}</td>
+              <td>
+                <button class="submit-btn" onclick="editMediaCategory(${cat.id})" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;">✏️ Edit</button>
+                <button class="delete-btn" onclick="deleteMediaCategory(${cat.id})">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error('Error loading media categories:', err);
+        const tbody = document.getElementById('media-categories-table');
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state" style="color: #f44336;">⚠️ Error loading categories. Please check console and verify database is set up correctly.</td></tr>';
+      }
+    }
+    
+    async function editMediaCategory(id) {
+      try {
+        const res = await fetch('/api/media-categories');
+        const categories = await res.json();
+        const category = categories.find(c => c.id === id);
+        
+        if (!category) return;
+        
+        document.getElementById('media-category-name').value = category.category_name;
+        document.getElementById('media-type').value = category.media_type;
+        document.getElementById('media-status').value = category.status.toString();
+        
+        if (category.media_type === 'image') {
+          document.getElementById('drive-folder-link').value = category.drive_folder_id 
+            ? `https://drive.google.com/drive/folders/${category.drive_folder_id}`
+            : '';
+        } else {
+          document.getElementById('youtube-url').value = category.youtube_url || '';
+        }
+        
+        toggleMediaFields();
+        
+        // Set edit mode
+        const form = document.querySelector('#media-categories-tab .form-section');
+        form.dataset.editId = id;
+        document.querySelector('#media-categories-tab .submit-btn').textContent = '💾 Update Category';
+        
+        // Scroll to form
+        form.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        console.error('Error loading category for edit:', err);
+      }
+    }
+    
+    async function deleteMediaCategory(id) {
+      if (!confirm('Delete this media category? This will not delete the actual files from Google Drive or YouTube.')) {
+        return;
+      }
+      
+      try {
+        await fetch(`/api/media-categories/${id}`, { method: 'DELETE' });
+        loadMediaCategories();
+      } catch (err) {
+        console.error('Error deleting media category:', err);
+      }
+    }
+
+    // Upload Photo
+    async function uploadPhoto() {
+      const file = document.getElementById('photo-file').files[0];
+      const title = document.getElementById('photo-title').value;
+      const category = document.getElementById('photo-category').value;
+      const msgDiv = document.getElementById('photo-msg');
+
+      if (!file || !title) {
+        msgDiv.textContent = 'Please fill all fields';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', title);
+      formData.append('category', category);
+
+      try {
+        msgDiv.innerHTML = '<span class="loading"></span> Uploading...';
+        msgDiv.style.display = 'block';
+
+        const res = await fetch('/api/upload-photo', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+
+        if (res.ok && data.success) {
+          msgDiv.textContent = 'Photo uploaded successfully!';
+          msgDiv.className = 'success-msg';
+          document.getElementById('photo-file').value = '';
+          document.getElementById('photo-title').value = '';
+          loadPhotos();
+        } else {
+          const errorMsg = data.error || data.message || 'Upload failed';
+          console.error('Upload error:', errorMsg);
+          msgDiv.textContent = 'Error: ' + errorMsg;
+          msgDiv.className = 'error-msg';
+        }
+      } catch (err) {
+        console.error('Upload exception:', err);
+        msgDiv.textContent = 'Error: ' + (err.message || 'Failed to upload photo. Please check console for details.');
+        msgDiv.className = 'error-msg';
+      }
+    }
+
+    // Upload Video
+    async function uploadVideo() {
+      const file = document.getElementById('video-file').files[0];
+      const title = document.getElementById('video-title').value;
+      const desc = document.getElementById('video-desc').value;
+      const autoplay = document.getElementById('video-autoplay').value;
+      const msgDiv = document.getElementById('video-msg');
+
+      if (!file || !title) {
+        msgDiv.textContent = 'Please fill all fields';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+
+      // Check file size (limit to 50MB for videos)
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      if (file.size > maxSize) {
+        msgDiv.textContent = 'Error: Video file too large. Maximum size is 50MB.';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', title);
+      formData.append('description', desc);
+      formData.append('autoplay', autoplay);
+
+      try {
+        msgDiv.innerHTML = '<span class="loading"></span> Uploading video... This may take a while.';
+        msgDiv.className = 'success-msg';
+        msgDiv.style.display = 'block';
+
+        console.log('Starting video upload:', {
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          title: title
+        });
+
+        const res = await fetch('/api/upload-video', {
+          method: 'POST',
+          body: formData
+        });
+
+        console.log('Upload response status:', res.status);
+        console.log('Upload response headers:', res.headers);
+
+        let data;
+        const contentType = res.headers.get('content-type');
+        console.log('Response content-type:', contentType);
+
+        if (contentType && contentType.includes('application/json')) {
+          data = await res.json();
+          console.log('Parsed JSON response:', data);
+        } else {
+          const text = await res.text();
+          console.log('Non-JSON response:', text);
+          throw new Error(`Server returned non-JSON response (${res.status}): ${text.substring(0, 200)}`);
+        }
+
+        if (res.ok && data.success) {
+          msgDiv.textContent = 'Video uploaded successfully!';
+          msgDiv.className = 'success-msg';
+          document.getElementById('video-file').value = '';
+          document.getElementById('video-title').value = '';
+          document.getElementById('video-desc').value = '';
+          loadVideos();
+        } else {
+          const errorMsg = data.error || data.message || `HTTP ${res.status}: Upload failed`;
+          console.error('Video upload error:', errorMsg);
+          msgDiv.textContent = 'Error: ' + errorMsg;
+          msgDiv.className = 'error-msg';
+        }
+      } catch (err) {
+        console.error('Video upload exception:', err);
+        msgDiv.textContent = 'Error: ' + (err.message || 'Failed to upload video. Check console for details.');
+        msgDiv.className = 'error-msg';
+      }
+    }
+
+    // Add Testimonial
+    async function addTestimonial() {
+      const name = document.getElementById('testimonial-name').value;
+      const review = document.getElementById('testimonial-review').value;
+      const rating = document.getElementById('testimonial-rating').value;
+      const photoUrl = document.getElementById('testimonial-photo').value;
+      const msgDiv = document.getElementById('testimonial-msg');
+
+      if (!name || !review) {
+        msgDiv.textContent = 'Please fill all fields';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/testimonials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, review, rating, photo_url: photoUrl })
+        });
+
+        if (res.ok) {
+          msgDiv.textContent = 'Testimonial added successfully!';
+          msgDiv.className = 'success-msg';
+          document.getElementById('testimonial-name').value = '';
+          document.getElementById('testimonial-review').value = '';
+          document.getElementById('testimonial-photo').value = '';
+          loadTestimonials();
+        }
+      } catch (err) {
+        msgDiv.textContent = 'Error: ' + err.message;
+        msgDiv.className = 'error-msg';
+      }
+    }
+
+    // Load Photos
+    async function loadPhotos() {
+      try {
+        const res = await fetch('/api/photos');
+        const photos = await res.json();
+        const tbody = document.getElementById('photos-table');
+        tbody.innerHTML = '';
+
+        if (photos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No photos yet</td></tr>';
+          return;
+        }
+
+        photos.forEach(photo => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${photo.id}</td>
+              <td>${photo.title}</td>
+              <td>${photo.category}</td>
+              <td>${new Date(photo.created_at).toLocaleDateString()}</td>
+              <td><button class="delete-btn" onclick="deletePhoto(${photo.id})">Delete</button></td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error('Error loading photos:', err);
+      }
+    }
+
+    // Load Videos
+    async function loadVideos() {
+      try {
+        const res = await fetch('/api/videos');
+        const videos = await res.json();
+        const tbody = document.getElementById('videos-table');
+        tbody.innerHTML = '';
+
+        if (videos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No videos yet</td></tr>';
+          return;
+        }
+
+        videos.forEach(video => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${video.id}</td>
+              <td>${video.title}</td>
+              <td>${video.description || '-'}</td>
+              <td>${new Date(video.created_at).toLocaleDateString()}</td>
+              <td><button class="delete-btn" onclick="deleteVideo(${video.id})">Delete</button></td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error('Error loading videos:', err);
+      }
+    }
+
+    // Load Testimonials
+    async function loadTestimonials() {
+      try {
+        const res = await fetch('/api/testimonials');
+        const testimonials = await res.json();
+        const tbody = document.getElementById('testimonials-table');
+        tbody.innerHTML = '';
+
+        if (testimonials.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No testimonials yet</td></tr>';
+          return;
+        }
+
+        testimonials.forEach(testimonial => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${testimonial.name}</td>
+              <td>${'⭐'.repeat(testimonial.rating)}</td>
+              <td>${testimonial.review.substring(0, 50)}...</td>
+              <td><button class="delete-btn" onclick="deleteTestimonial(${testimonial.id})">Delete</button></td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error('Error loading testimonials:', err);
+      }
+    }
+
+    // Load Enquiries
+    async function loadEnquiries() {
+      try {
+        const res = await fetch('/api/enquiries');
+        const enquiries = await res.json();
+        const tbody = document.getElementById('enquiries-table');
+        tbody.innerHTML = '';
+
+        if (enquiries.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No enquiries yet</td></tr>';
+          return;
+        }
+
+        enquiries.forEach(enquiry => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${enquiry.name}</td>
+              <td>${enquiry.email}</td>
+              <td>${enquiry.phone}</td>
+              <td>${enquiry.wedding_date}</td>
+              <td>${enquiry.message.substring(0, 50)}...</td>
+              <td>${new Date(enquiry.created_at).toLocaleDateString()}</td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error('Error loading enquiries:', err);
+      }
+    }
+
+    // Load all data
+    async function loadAllData() {
+      loadMediaCategories();
+      loadPhotos();
+      loadVideos();
+      loadTestimonials();
+      loadEnquiries();
+      loadOwnerInfo();
+    }
+
+    // Upload Owner Photo
+    async function uploadOwnerPhoto() {
+      const file = document.getElementById('owner-photo-file').files[0];
+      const msgDiv = document.getElementById('owner-msg');
+
+      if (!file) {
+        msgDiv.textContent = 'Please select a photo file';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        msgDiv.textContent = 'Please select a valid image file (JPG, PNG, WebP)';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        msgDiv.innerHTML = '<span class="loading"></span> Uploading owner photo...';
+        msgDiv.className = 'success-msg';
+        msgDiv.style.display = 'block';
+
+        const res = await fetch('/api/upload-owner-photo', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+
+        if (res.ok && data.success) {
+          msgDiv.textContent = 'Owner photo uploaded successfully!';
+          msgDiv.className = 'success-msg';
+          document.getElementById('owner-photo-file').value = '';
+          
+          // Update the preview image with the returned URL
+          const currentPhoto = document.getElementById('current-owner-photo');
+          const placeholder = document.getElementById('no-photo-placeholder');
+          
+          // Use the URL returned from the server
+          const photoUrl = data.url || 'uploads/owner-photo.jpg';
+          currentPhoto.src = photoUrl + '?' + new Date().getTime();
+          currentPhoto.style.display = 'block';
+          placeholder.style.display = 'none';
+          
+          // Trigger update on main website
+          if (socket) {
+            socket.emit('owner-updated');
+          }
+        } else {
+          const errorMsg = data.error || data.message || 'Upload failed';
+          console.error('Owner photo upload error:', errorMsg);
+          msgDiv.textContent = 'Error: ' + errorMsg;
+          msgDiv.className = 'error-msg';
+        }
+      } catch (err) {
+        console.error('Owner photo upload exception:', err);
+        msgDiv.textContent = 'Error: ' + (err.message || 'Failed to upload owner photo. Please check console for details.');
+        msgDiv.className = 'error-msg';
+      }
+    }
+
+    // Delete Owner Photo
+    async function deleteOwnerPhoto() {
+      if (!confirm('Are you sure you want to remove the current owner photo?')) {
+        return;
+      }
+
+      const msgDiv = document.getElementById('owner-msg');
+
+      try {
+        msgDiv.innerHTML = '<span class="loading"></span> Removing owner photo...';
+        msgDiv.className = 'success-msg';
+        msgDiv.style.display = 'block';
+
+        const res = await fetch('/api/delete-owner-photo', {
+          method: 'DELETE'
+        });
+
+        const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+
+        if (res.ok && data.success) {
+          msgDiv.textContent = 'Owner photo removed successfully!';
+          msgDiv.className = 'success-msg';
+          
+          // Update the preview
+          const currentPhoto = document.getElementById('current-owner-photo');
+          const placeholder = document.getElementById('no-photo-placeholder');
+          
+          currentPhoto.style.display = 'none';
+          placeholder.style.display = 'flex';
+          
+          // Trigger update on main website
+          if (socket) {
+            socket.emit('owner-updated');
+          }
+        } else {
+          const errorMsg = data.error || data.message || 'Delete failed';
+          msgDiv.textContent = 'Error: ' + errorMsg;
+          msgDiv.className = 'error-msg';
+        }
+      } catch (err) {
+        console.error('Owner photo delete exception:', err);
+        msgDiv.textContent = 'Error: ' + (err.message || 'Failed to remove owner photo.');
+        msgDiv.className = 'error-msg';
+      }
+    }
+
+    // Update Owner Information
+    async function updateOwnerInfo() {
+      const name = document.getElementById('owner-name').value.trim();
+      const title = document.getElementById('owner-title').value.trim();
+      const experience = document.getElementById('owner-experience').value;
+      const weddings = document.getElementById('owner-weddings').value;
+      const description = document.getElementById('owner-description').value.trim();
+      const quote = document.getElementById('owner-quote').value.trim();
+      const msgDiv = document.getElementById('owner-msg');
+
+      if (!name || !title || !experience || !weddings) {
+        msgDiv.textContent = 'Please fill in all required fields';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+
+      const ownerData = {
+        name,
+        title,
+        experience: parseInt(experience),
+        weddings: parseInt(weddings),
+        description,
+        quote
+      };
+
+      try {
+        msgDiv.innerHTML = '<span class="loading"></span> Updating owner information...';
+        msgDiv.className = 'success-msg';
+        msgDiv.style.display = 'block';
+
+        const res = await fetch('/api/update-owner-info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(ownerData)
+        });
+
+        const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+
+        if (res.ok && data.success) {
+          msgDiv.textContent = 'Owner information updated successfully!';
+          msgDiv.className = 'success-msg';
+          
+          // Trigger update on main website
+          if (socket) {
+            socket.emit('owner-updated');
+          }
+        } else {
+          const errorMsg = data.error || data.message || 'Update failed';
+          msgDiv.textContent = 'Error: ' + errorMsg;
+          msgDiv.className = 'error-msg';
+        }
+      } catch (err) {
+        console.error('Owner info update exception:', err);
+        msgDiv.textContent = 'Error: ' + (err.message || 'Failed to update owner information.');
+        msgDiv.className = 'error-msg';
+      }
+    }
+
+    // Load Owner Information
+    async function loadOwnerInfo() {
+      try {
+        const res = await fetch('/api/owner-info');
+        if (res.ok) {
+          const data = await res.json();
+          if (data) {
+            document.getElementById('owner-name').value = data.name || 'Kamendra';
+            document.getElementById('owner-title').value = data.title || 'Your Wedding Story Architect';
+            document.getElementById('owner-experience').value = data.experience || '10';
+            document.getElementById('owner-weddings').value = data.weddings_captured || data.weddings || '500';
+            document.getElementById('owner-description').value = data.description || '';
+            document.getElementById('owner-quote').value = data.quote || '';
+            
+            // Update photo preview if available
+            if (data.photo_url) {
+              const currentPhoto = document.getElementById('current-owner-photo');
+              const placeholder = document.getElementById('no-photo-placeholder');
+              
+              currentPhoto.src = data.photo_url + '?' + new Date().getTime();
+              currentPhoto.style.display = 'block';
+              placeholder.style.display = 'none';
+            }
+          }
+        }
+      } catch (err) {
+        console.log('Owner info not found, using defaults');
+      }
+    }
+
+    // ========================================
+    // ABOUT PAGE FUNCTIONS
+    // ========================================
+    
+    let equipmentImageUrl = '';
+    
+    // Load Equipment
+    async function loadEquipment() {
+      try {
+        const res = await fetch('/api/equipment');
+        const equipment = await res.json();
+        const tbody = document.getElementById('equipment-table');
+        tbody.innerHTML = '';
+        
+        if (equipment.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No equipment added yet</td></tr>';
+          return;
+        }
+        
+        equipment.forEach(item => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${item.id}</td>
+              <td>${item.name}</td>
+              <td>${item.category || '-'}</td>
+              <td>${item.description ? item.description.substring(0, 50) + '...' : '-'}</td>
+              <td>${item.display_order}</td>
+              <td>
+                <button class="delete-btn" onclick="deleteEquipment(${item.id})">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error('Error loading equipment:', err);
+      }
+    }
+    
+    // Add Equipment
+    async function addEquipment() {
+      const name = document.getElementById('equipment-name').value.trim();
+      const category = document.getElementById('equipment-category').value.trim();
+      const description = document.getElementById('equipment-description').value.trim();
+      const displayOrder = document.getElementById('equipment-order').value;
+      const msgDiv = document.getElementById('equipment-msg');
+      
+      if (!name) {
+        msgDiv.textContent = 'Please enter equipment name';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+      
+      try {
+        // Upload image if selected
+        const imageFile = document.getElementById('equipment-image-file').files[0];
+        if (imageFile) {
+          msgDiv.textContent = 'Uploading image...';
+          msgDiv.className = 'success-msg';
+          msgDiv.style.display = 'block';
+          
+          const imageFormData = new FormData();
+          imageFormData.append('file', imageFile);
+          
+          const imageRes = await fetch('/api/equipment/upload-image', {
+            method: 'POST',
+            body: imageFormData
+          });
+          
+          const imageResult = await imageRes.json();
+          if (imageResult.success) {
+            equipmentImageUrl = imageResult.url;
+          } else {
+            msgDiv.textContent = 'Error uploading image: ' + (imageResult.error || 'Unknown error');
+            msgDiv.className = 'error-msg';
+            return;
+          }
+        }
+        
+        msgDiv.textContent = 'Adding equipment...';
+        msgDiv.className = 'success-msg';
+        msgDiv.style.display = 'block';
+        
+        const data = {
+          name,
+          category,
+          description,
+          image_url: equipmentImageUrl || null,
+          display_order: parseInt(displayOrder) || 0
+        };
+        
+        const res = await fetch('/api/equipment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success) {
+          msgDiv.textContent = '✅ Equipment added successfully!';
+          msgDiv.className = 'success-msg';
+          
+          // Clear form
+          document.getElementById('equipment-name').value = '';
+          document.getElementById('equipment-category').value = '';
+          document.getElementById('equipment-description').value = '';
+          document.getElementById('equipment-order').value = '0';
+          document.getElementById('equipment-image-file').value = '';
+          document.getElementById('equipment-image-preview').innerHTML = '';
+          equipmentImageUrl = '';
+          
+          loadEquipment();
+          
+          setTimeout(() => {
+            msgDiv.style.display = 'none';
+          }, 3000);
+        } else {
+          msgDiv.textContent = 'Error: ' + (result.error || 'Failed to add equipment');
+          msgDiv.className = 'error-msg';
+        }
+      } catch (err) {
+        console.error('Error adding equipment:', err);
+        msgDiv.textContent = 'Error: ' + err.message;
+        msgDiv.className = 'error-msg';
+      }
+    }
+    
+    // Delete Equipment
+    async function deleteEquipment(id) {
+      if (!confirm('Delete this equipment?')) return;
+      
+      try {
+        const res = await fetch(`/api/equipment/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+        
+        if (result.success) {
+          loadEquipment();
+        }
+      } catch (err) {
+        console.error('Error deleting equipment:', err);
+      }
+    }
+    
+    // Load BTS Images Config
+    async function loadBTSImagesConfig() {
+      try {
+        const res = await fetch('/api/bts-images-config');
+        const config = await res.json();
+        
+        const configDiv = document.getElementById('bts-images-current-config');
+        
+        if (config && config.drive_folder_id) {
+          configDiv.innerHTML = `
+            <p><strong>Folder ID:</strong> ${config.drive_folder_id}</p>
+            <p><strong>Status:</strong> <span style="color: #4caf50;">Active</span></p>
+            <p><strong>Created:</strong> ${new Date(config.created_at).toLocaleString()}</p>
+          `;
+          
+          document.getElementById('bts-images-drive-link').value = `https://drive.google.com/drive/folders/${config.drive_folder_id}`;
+        } else {
+          configDiv.innerHTML = '<p style="color: #999;">No BTS images configured yet</p>';
+        }
+      } catch (err) {
+        console.error('Error loading BTS images config:', err);
+        document.getElementById('bts-images-current-config').innerHTML = '<p style="color: #f44336;">Error: ' + err.message + '</p>';
+      }
+    }
+    
+    // Save BTS Images
+    async function saveBTSImages() {
+      const msgDiv = document.getElementById('bts-images-msg');
+      const driveFolderLink = document.getElementById('bts-images-drive-link').value.trim();
+      
+      if (!driveFolderLink) {
+        msgDiv.textContent = 'Please enter a Google Drive folder link';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+      
+      try {
+        msgDiv.textContent = 'Saving...';
+        msgDiv.className = 'success-msg';
+        msgDiv.style.display = 'block';
+        
+        const res = await fetch('/api/bts-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ drive_folder_link: driveFolderLink })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          msgDiv.textContent = '✅ BTS images saved successfully!';
+          msgDiv.className = 'success-msg';
+          
+          loadBTSImagesConfig();
+          
+          setTimeout(() => {
+            msgDiv.style.display = 'none';
+          }, 3000);
+        } else {
+          msgDiv.textContent = 'Error: ' + (result.error || 'Failed to save');
+          msgDiv.className = 'error-msg';
+        }
+      } catch (err) {
+        console.error('Error saving BTS images:', err);
+        msgDiv.textContent = 'Error: ' + err.message;
+        msgDiv.className = 'error-msg';
+      }
+    }
+    
+    // Load BTS Videos
+    async function loadBTSVideos() {
+      try {
+        const res = await fetch('/api/bts-videos');
+        const videos = await res.json();
+        const tbody = document.getElementById('bts-videos-table');
+        tbody.innerHTML = '';
+        
+        if (videos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No BTS videos added yet</td></tr>';
+          return;
+        }
+        
+        videos.forEach(video => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${video.id}</td>
+              <td>${video.title}</td>
+              <td>${video.youtube_id}</td>
+              <td>${video.display_order}</td>
+              <td>
+                <button class="delete-btn" onclick="deleteBTSVideo(${video.id})">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error('Error loading BTS videos:', err);
+      }
+    }
+    
+    // Add BTS Video
+    async function addBTSVideo() {
+      const title = document.getElementById('bts-video-title').value.trim();
+      const youtubeUrl = document.getElementById('bts-video-url').value.trim();
+      const displayOrder = document.getElementById('bts-video-order').value;
+      const msgDiv = document.getElementById('bts-videos-msg');
+      
+      if (!title || !youtubeUrl) {
+        msgDiv.textContent = 'Please enter both title and YouTube URL';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+      
+      try {
+        msgDiv.textContent = 'Adding video...';
+        msgDiv.className = 'success-msg';
+        msgDiv.style.display = 'block';
+        
+        const data = {
+          title,
+          youtube_url: youtubeUrl,
+          display_order: parseInt(displayOrder) || 0
+        };
+        
+        const res = await fetch('/api/bts-videos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success) {
+          msgDiv.textContent = '✅ BTS video added successfully!';
+          msgDiv.className = 'success-msg';
+          
+          // Clear form
+          document.getElementById('bts-video-title').value = '';
+          document.getElementById('bts-video-url').value = '';
+          document.getElementById('bts-video-order').value = '0';
+          
+          loadBTSVideos();
+          
+          setTimeout(() => {
+            msgDiv.style.display = 'none';
+          }, 3000);
+        } else {
+          msgDiv.textContent = 'Error: ' + (result.error || 'Failed to add video');
+          msgDiv.className = 'error-msg';
+        }
+      } catch (err) {
+        console.error('Error adding BTS video:', err);
+        msgDiv.textContent = 'Error: ' + err.message;
+        msgDiv.className = 'error-msg';
+      }
+    }
+    
+    // Delete BTS Video
+    async function deleteBTSVideo(id) {
+      if (!confirm('Delete this BTS video?')) return;
+      
+      try {
+        const res = await fetch(`/api/bts-videos/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+        
+        if (result.success) {
+          loadBTSVideos();
+        }
+      } catch (err) {
+        console.error('Error deleting BTS video:', err);
+      }
+    }
+
+    // ========================================
+    // GALLERY FUNCTIONS
+    // ========================================
+    
+    // Load Albums
+    async function loadAlbums() {
+      try {
+        const res = await fetch('/api/albums');
+        const albums = await res.json();
+        const tbody = document.getElementById('albums-table');
+        tbody.innerHTML = '';
+        
+        if (albums.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No albums added yet</td></tr>';
+          return;
+        }
+        
+        albums.forEach(album => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${album.id}</td>
+              <td>${album.title}</td>
+              <td>${album.description ? album.description.substring(0, 50) + '...' : '-'}</td>
+              <td>${album.photo_count || 0} photos</td>
+              <td>${album.display_order}</td>
+              <td>
+                <button class="delete-btn" onclick="deleteAlbum(${album.id})">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (err) {
+        console.error('Error loading albums:', err);
+      }
+    }
+    
+    // Add Album
+    async function addAlbum() {
+      const title = document.getElementById('album-title').value.trim();
+      const description = document.getElementById('album-description').value.trim();
+      const driveFolderLink = document.getElementById('album-drive-link').value.trim();
+      const coverImage = document.getElementById('album-cover-image').value.trim();
+      const displayOrder = document.getElementById('album-order').value;
+      const msgDiv = document.getElementById('gallery-msg');
+      
+      if (!title || !driveFolderLink) {
+        msgDiv.textContent = 'Please enter album title and Google Drive folder link';
+        msgDiv.className = 'error-msg';
+        msgDiv.style.display = 'block';
+        return;
+      }
+      
+      try {
+        msgDiv.textContent = 'Adding album...';
+        msgDiv.className = 'success-msg';
+        msgDiv.style.display = 'block';
+        
+        const data = {
+          title,
+          description,
+          drive_folder_link: driveFolderLink,
+          cover_image: coverImage || null,
+          display_order: parseInt(displayOrder) || 0
+        };
+        
+        const res = await fetch('/api/albums', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok && result.success) {
+          msgDiv.textContent = '✅ Album added successfully!';
+          msgDiv.className = 'success-msg';
+          
+          // Clear form
+          document.getElementById('album-title').value = '';
+          document.getElementById('album-description').value = '';
+          document.getElementById('album-drive-link').value = '';
+          document.getElementById('album-cover-image').value = '';
+          document.getElementById('album-order').value = '0';
+          
+          loadAlbums();
+          
+          setTimeout(() => {
+            msgDiv.style.display = 'none';
+          }, 3000);
+        } else {
+          msgDiv.textContent = 'Error: ' + (result.error || 'Failed to add album');
+          msgDiv.className = 'error-msg';
+        }
+      } catch (err) {
+        console.error('Error adding album:', err);
+        msgDiv.textContent = 'Error: ' + err.message;
+        msgDiv.className = 'error-msg';
+      }
+    }
+    
+    // Delete Album
+    async function deleteAlbum(id) {
+      if (!confirm('Delete this album?')) return;
+      
+      try {
+        const res = await fetch(`/api/albums/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+        
+        if (result.success) {
+          loadAlbums();
+        }
+      } catch (err) {
+        console.error('Error deleting album:', err);
+      }
+    }
+
+    // Delete functions
+    async function deletePhoto(id) {
+      if (confirm('Delete this photo?')) {
+        await fetch(`/api/photos/${id}`, { method: 'DELETE' });
+        loadPhotos();
+      }
+    }
+
+    async function deleteVideo(id) {
+      if (confirm('Delete this video?')) {
+        await fetch(`/api/videos/${id}`, { method: 'DELETE' });
+        loadVideos();
+      }
+    }
+
+    async function deleteTestimonial(id) {
+      if (confirm('Delete this testimonial?')) {
+        await fetch(`/api/testimonials/${id}`, { method: 'DELETE' });
+        loadTestimonials();
+      }
+    }
+
+    // Socket.io listeners
+    if (socket) {
+      socket.on('photos-updated', loadPhotos);
+      socket.on('videos-updated', loadVideos);
+      socket.on('testimonials-updated', loadTestimonials);
+      socket.on('media-categories-updated', loadMediaCategories);
+      socket.on('gallery-updated', loadAlbums);
+    }
+  </script>
+</body>
+</html>

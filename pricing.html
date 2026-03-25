@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing - Wedding Studio</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="pricing-style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Top Sub-Navbar -->
+  <div class="top-bar">
+    <div class="container">
+      <div class="top-content">
+        <div class="location"><span>📍</span> Janakpur, Nepal</div>
+        <a href="mailto:studiokamendra@gmail.com" class="contact"><span>✉️</span>studiokamendra@gmail.com</a>
+        <div class="social">
+          <div class="social-icons">
+            <span>📘</span><span>📷</span><span>📺</span><span>📌</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Navbar -->
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-content">
+        <div class="logo">
+          <img src="logo.png" alt="Studio Kamendra" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="logo-text" style="display: none;">
+            <span style="font-size: 1.8rem; font-weight: 700; color: #d4af37;">STUDIO</span>
+            <span style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-left: 0.5rem;">KAMENDRA</span>
+          </div>
+        </div>
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-menu" id="nav-menu">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="index.html#portfolio">Portfolio</a></li>
+          <li><a href="pricing.html" class="active">Pricing</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="index.html#contact">Contact</a></li>
+        </ul>
+        <a href="index.html#contact" class="cta-btn">Enquire Now</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Pricing Hero Section -->
+  <section class="pricing-hero">
+    <div class="container">
+      <div class="pricing-hero-content">
+        <h1 id="pricing-title">Investment in Forever</h1>
+        <p id="pricing-subtitle">Timeless memories deserve exceptional photography</p>
+      </div>
+    </div>
+    <!-- Floating Icons -->
+    <div class="floating-icon" style="top: 10%; left: 10%;">💍</div>
+    <div class="floating-icon" style="top: 20%; right: 15%;">📸</div>
+    <div class="floating-icon" style="bottom: 15%; left: 15%;">💐</div>
+    <div class="floating-icon" style="bottom: 20%; right: 10%;">✨</div>
+  </section>
+
+  <!-- Pricing Content Section -->
+  <section class="pricing-content section-padding">
+    <div class="container">
+      <div class="pricing-grid">
+        <!-- Left: Text Content -->
+        <div class="pricing-text">
+          <div class="pricing-intro">
+            <h2 id="intro-heading">Your Love Story, Beautifully Told</h2>
+            <div id="intro-text" class="editable-content">
+              <p>Your wedding day is one of the most precious moments of your life, and we believe it deserves to be captured with artistry, passion, and attention to every detail.</p>
+              <p>Our pricing reflects not just our time, but years of experience, professional equipment, and a commitment to delivering memories you'll treasure for generations.</p>
+            </div>
+          </div>
+
+          <div class="pricing-details">
+            <h3 id="details-heading">What Every Package Includes</h3>
+            <div id="details-text" class="editable-content">
+              <ul>
+                <li>Full day coverage (up to 12 hours)</li>
+                <li>Two professional photographers</li>
+                <li>Cinematic wedding film (5-7 minutes)</li>
+                <li>500+ edited high-resolution photos</li>
+                <li>Private online gallery with download access</li>
+                <li>Print-ready files for albums</li>
+                <li>Drone footage (weather permitting)</li>
+                <li>Pre-wedding consultation</li>
+                <li>Engagement photoshoot session</li>
+                <li>Same-day highlights reel</li>
+                <li>USB drive with all files</li>
+                <li>Complimentary photo album (20 pages)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="pricing-note">
+            <h3 id="note-heading">Flexible & Customizable</h3>
+            <div id="note-text" class="editable-content">
+              <p>We understand that every wedding is unique, and so are your needs. Whether you're planning an intimate ceremony or a grand celebration, we offer flexible packages tailored to your vision and budget.</p>
+              <p><strong>Starting from NPR 50,000</strong> - Contact us for a personalized quote based on your specific requirements, location, and duration.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Image & PDF -->
+        <div class="pricing-media">
+          <div class="pricing-image-card">
+            <img id="pricing-image" src="https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=800&fit=crop" alt="Wedding Photography Pricing">
+            <div class="image-overlay">
+              <span class="overlay-icon">📸</span>
+            </div>
+          </div>
+
+          <div class="pricing-pdf-card">
+            <div class="pdf-icon">📄</div>
+            <h4>Download Price List</h4>
+            <p>Get our detailed pricing brochure</p>
+            <a id="pdf-download-link" href="#" class="pdf-download-btn" style="display: none;">
+              <span>📥</span> Download PDF
+            </a>
+            <p id="pdf-no-file" style="color: #999; font-size: 0.9rem;">Contact us for detailed pricing</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="pricing-cta">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to Book Your Date?</h2>
+        <p>Let's discuss your wedding photography needs</p>
+        <a href="index.html#contact" class="btn-primary">Get in Touch</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 Wedding Studio. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="pricing-script.js"></script>
+</body>
+</html>

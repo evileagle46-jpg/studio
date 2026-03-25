@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Gallery - Studio Kamendra</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="gallery-style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Top Sub-Navbar -->
+  <div class="top-bar">
+    <div class="container">
+      <div class="top-content">
+        <div class="location"><span>📍</span> Janakpur, Nepal</div>
+        <a href="mailto:studio@email.com" class="contact"><span>✉️</span> studio@email.com</a>
+        <div class="social">
+          <div class="social-icons">
+            <span>📘</span><span>📷</span><span>📺</span><span>📌</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Navbar -->
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-content">
+        <div class="logo">
+          <img src="uploads/logo.png" alt="Studio Kamendra" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="logo-text" style="display: none;">
+            <span style="font-size: 1.8rem; font-weight: 700; color: #d4af37;">STUDIO</span>
+            <span style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-left: 0.5rem;">KAMENDRA</span>
+          </div>
+        </div>
+        
+        <!-- Hamburger Menu Button -->
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        
+        <ul class="nav-menu" id="nav-menu">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="index.html#portfolio">Portfolio</a></li>
+          <li><a href="gallery.html" class="active">Gallery</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="index.html#contact">Contact</a></li>
+        </ul>
+        <a href="index.html#contact" class="cta-btn">Enquire Now</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Gallery Hero Section -->
+  <section class="gallery-hero">
+    <div class="container">
+      <div class="gallery-hero-content">
+        <div class="hero-badge">✨ Photo Albums</div>
+        <h1>Our Joyful Moments</h1>
+        <p>Explore our collection of beautiful wedding albums</p>
+      </div>
+    </div>
+    <!-- Floating Confetti -->
+    <div class="confetti">
+      <div class="confetti-piece" style="--delay: 0s; --x: 10%; --y: 20%;">🎉</div>
+      <div class="confetti-piece" style="--delay: 0.5s; --x: 80%; --y: 30%;">💕</div>
+      <div class="confetti-piece" style="--delay: 1s; --x: 20%; --y: 60%;">✨</div>
+      <div class="confetti-piece" style="--delay: 1.5s; --x: 70%; --y: 70%;">🎊</div>
+      <div class="confetti-piece" style="--delay: 2s; --x: 40%; --y: 40%;">💐</div>
+      <div class="confetti-piece" style="--delay: 2.5s; --x: 90%; --y: 50%;">🌟</div>
+    </div>
+  </section>
+
+  <!-- Albums Section -->
+  <section class="albums-section section-padding">
+    <div class="container">
+      <div class="albums-grid" id="albums-grid">
+        <!-- Albums will be loaded here -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Album Modal -->
+  <div class="album-modal" id="album-modal">
+    <div class="album-modal-content">
+      <button class="modal-close" onclick="closeAlbumModal()">×</button>
+      <div class="album-modal-header">
+        <h2 id="modal-album-title"></h2>
+        <p id="modal-album-description"></p>
+      </div>
+      <div class="album-photos-grid" id="modal-photos-grid">
+        <!-- Photos will be loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" style="display: none;">
+    <button class="lightbox-close" onclick="closeLightbox()">×</button>
+    <button class="lightbox-prev" onclick="prevPhoto()">‹</button>
+    <button class="lightbox-next" onclick="nextPhoto()">›</button>
+    <img id="lightbox-img" src="" alt="">
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 Studio Kamendra. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="gallery-script.js"></script>
+</body>
+</html>

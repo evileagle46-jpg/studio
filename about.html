@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Us - Wedding Studio</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="about-style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Top Sub-Navbar -->
+  <div class="top-bar">
+    <div class="container">
+      <div class="top-content">
+        <div class="location"><span>📍</span> Janakpur, Nepal</div>
+        <a href="mailto:studio@email.com" class="contact"><span>✉️</span> studiokamendra@gmail.com</a>
+        <div class="social">
+          <div class="social-icons">
+            <span>📘</span><span>📷</span><span>📺</span><span>📌</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Navbar -->
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-content">
+        <div class="logo">
+          <img src="logo.png" alt="Studio Kamendra" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="logo-text" style="display: none;">
+            <span style="font-size: 1.8rem; font-weight: 700; color: #d4af37;">STUDIO</span>
+            <span style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-left: 0.5rem;">KAMENDRA</span>
+          </div>
+        </div>
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-menu" id="nav-menu">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="index.html#portfolio">Portfolio</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="about.html" class="active">About</a></li>
+          <li><a href="index.html#contact">Contact</a></li>
+        </ul>
+        <a href="index.html#contact" class="cta-btn">Enquire Now</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- About Hero Section -->
+  <section class="about-hero">
+    <div class="container">
+      <div class="about-hero-content">
+        <div class="hero-badge">✨ Behind The Lens</div>
+        <h1 id="about-title">Our Story & Equipment</h1>
+        <p id="about-subtitle">Professional gear meets artistic vision</p>
+      </div>
+    </div>
+    <div class="hero-animation">
+      <div class="floating-icon" style="--delay: 0s;">📷</div>
+      <div class="floating-icon" style="--delay: 1s;">🎥</div>
+      <div class="floating-icon" style="--delay: 2s;">💡</div>
+      <div class="floating-icon" style="--delay: 3s;">🎬</div>
+    </div>
+  </section>
+
+  <!-- Equipment Section -->
+  <section class="equipment-section section-padding">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Professional Equipment</h2>
+        <p class="section-subtitle">State-of-the-art gear for exceptional results</p>
+      </div>
+
+      <div class="equipment-slider-container">
+        <button class="slider-arrow slider-arrow-left" id="equipment-prev">
+          <span>‹</span>
+        </button>
+        
+        <div class="equipment-slider-wrapper">
+          <div class="equipment-grid" id="equipment-grid">
+            <!-- Equipment items will be loaded here -->
+          </div>
+        </div>
+        
+        <button class="slider-arrow slider-arrow-right" id="equipment-next">
+          <span>›</span>
+        </button>
+      </div>
+
+      <div class="slider-dots" id="equipment-dots">
+        <!-- Dots will be generated here -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Behind The Scenes Section -->
+  <section class="bts-section section-padding">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Behind The Scenes</h2>
+        <p class="section-subtitle">See how we create magic</p>
+      </div>
+
+      <!-- BTS Images -->
+      <div class="bts-images-section">
+        <h3 class="subsection-title">📸 BTS Photos</h3>
+        <div class="bts-images-grid" id="bts-images-grid">
+          <!-- BTS images will be loaded here -->
+        </div>
+      </div>
+
+      <!-- BTS Videos -->
+      <div class="bts-videos-section">
+        <h3 class="subsection-title">🎬 BTS Videos</h3>
+        <div class="bts-videos-grid" id="bts-videos-grid">
+          <!-- BTS videos will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📷</div>
+          <div class="stat-number" data-target="500">0</div>
+          <div class="stat-label">Weddings Captured</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-number" data-target="10">0</div>
+          <div class="stat-label">Years Experience</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎥</div>
+          <div class="stat-number" data-target="1000">0</div>
+          <div class="stat-label">Hours of Footage</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">😊</div>
+          <div class="stat-number" data-target="100">0</div>
+          <div class="stat-label">Happy Clients</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="about-cta">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to Create Your Story?</h2>
+        <p>Let's discuss your wedding photography needs</p>
+        <a href="index.html#contact" class="btn-primary">Get in Touch</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 Wedding Studio. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="about-script.js"></script>
+</body>
+</html>

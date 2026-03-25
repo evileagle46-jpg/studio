@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wedding Studio - Timeless Moments</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Top Sub-Navbar -->
+  <div class="top-bar">
+    <div class="container">
+      <div class="top-content">
+        <div class="location"><span>📍</span> Janakpur, Nepal</div>
+        <a href="mailto:studio@email.com" class="contact"><span>✉️</span> studiokamendra@gmail.com</a>
+        <div class="social">
+          <div class="social-icons">
+            <span>📘</span><span>📷</span><span>📺</span><span>📌</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Navbar -->
+  <nav class="navbar">
+    <div class="container">
+      <div class="nav-content">
+         <div class="logo">
+          <img src="logo.png" alt="Studio Kamendra" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="logo-text" style="display: none;">
+            <span style="font-size: 1.8rem; font-weight: 700; color: #d4af37;">STUDIO</span>
+            <span style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-left: 0.5rem;">KAMENDRA</span>
+          </div>
+        </div>
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-menu" id="nav-menu">
+          <li><a href="#home">Home</a></li>
+          <li class="has-dropdown">
+            <a href="#portfolio">Portfolio <span class="dropdown-arrow">▼</span></a>
+            <div class="mega-dropdown" id="portfolio-mega-menu">
+              <div class="mega-dropdown-content">
+                <div class="mega-dropdown-header">
+                  <h3>Explore Our Work</h3>
+                  <p>Browse through our stunning wedding photography collections</p>
+                </div>
+                <div class="mega-dropdown-grid" id="portfolio-categories-menu">
+                  <!-- Dynamic categories will load here -->
+                </div>
+              </div>
+            </div>
+          </li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+        <a href="#contact" class="cta-btn">Enquire Now</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="hero">
+    <div class="hero-carousel" id="hero-carousel">
+      <!-- Dynamic images -->
+    </div>
+    <div class="hero-content">
+      <h1>Capturing <span class="gold">Timeless</span><br>Wedding Stories</h1>
+      <p>Luxury Wedding Photography & Cinematic Films</p>
+      <div class="hero-buttons">
+        <a href="#portfolio" class="btn-primary">View Portfolio</a>
+        <a href="#contact" class="btn-secondary">Enquire Now</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Us -->
+  <section class="why-us section-padding" id="why-us">
+    <div class="container">
+      <h2 class="section-title">Why Choose Us?</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🎥</div>
+          <h3>10+ Years Experience</h3>
+          <p>Trusted by hundreds of couples across Nepal</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">✨</div>
+          <h3>Cinematic Films</h3>
+          <p>Hollywood-style wedding movies</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <h3>Creative Editing</h3>
+          <p>Every frame tells a story</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⭐</div>
+          <h3>100% Satisfaction</h3>
+          <p>No complain till now</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Portfolio -->
+  <section class="portfolio section-padding" id="portfolio">
+    <div class="container">
+      <h2 class="section-title">Our Portfolio</h2>
+      <div class="category-tabs" id="category-tabs">
+        <button class="tab active" data-category="all">All</button>
+        <!-- Dynamic category tabs will be loaded here -->
+      </div>
+      
+      <!-- Portfolio Slider -->
+      <div class="portfolio-slider-container">
+        <button class="slider-nav prev" onclick="slidePortfolio(-1)">
+          <span>❮</span>
+        </button>
+        
+        <div class="portfolio-slider" id="portfolio-slider">
+          <!-- Images will be loaded here -->
+        </div>
+        
+        <button class="slider-nav next" onclick="slidePortfolio(1)">
+          <span>❯</span>
+        </button>
+      </div>
+      
+      <!-- Slider Dots -->
+      <div class="slider-dots" id="slider-dots"></div>
+      
+      <!-- View All Button -->
+      <div style="text-align: center; margin-top: 3rem;">
+        <button class="btn-primary" onclick="showAllPhotos()">View All Photos</button>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Full Portfolio Grid (Hidden by default) -->
+  <div id="full-portfolio-modal" class="portfolio-modal">
+    <div class="portfolio-modal-content">
+      <div class="portfolio-modal-header">
+        <h2>All Photos</h2>
+        <button class="modal-close" onclick="closeAllPhotos()">✕</button>
+      </div>
+      <div class="portfolio-grid" id="portfolio-grid"></div>
+    </div>
+  </div>
+
+  <!-- Video Showcase -->
+  <section class="video-showcase section-padding" id="videos">
+    <div class="container">
+      <h2 class="section-title">Cinematic Wedding Films</h2>
+      
+      <div class="video-slider-container">
+        <button class="video-nav prev" onclick="slideVideos(-1)">
+          <span>❮</span>
+        </button>
+        
+        <div class="video-carousel" id="video-carousel"></div>
+        
+        <button class="video-nav next" onclick="slideVideos(1)">
+          <span>❯</span>
+        </button>
+      </div>
+      
+      <!-- Slider Dots -->
+      <div class="video-dots" id="video-dots"></div>
+    </div>
+  </section>
+
+  <!-- Meet the Owner -->
+  <section class="owner-section section-padding" id="owner">
+    <div class="container">
+      <div class="owner-content">
+        <div class="owner-image">
+          <div class="owner-photo">
+            <img src="uploads/owner-photo.jpg" alt="Kamendra - Wedding Photographer" id="owner-img">
+            <div class="owner-badge">
+              <span class="badge-text">Master Photographer</span>
+            </div>
+          </div>
+        </div>
+        <div class="owner-details">
+          <div class="owner-intro">
+            <h2 class="owner-title">Meet <span class="gold">Kamendra</span></h2>
+            <p class="owner-subtitle">Your Wedding Story Architect</p>
+          </div>
+          <div class="owner-description">
+            <p>With over a decade of experience capturing love stories across Nepal, Kamendra brings an artistic vision and passionate dedication to every wedding. His cinematic approach transforms your special moments into timeless masterpieces.</p>
+            <p>Specializing in candid emotions and dramatic storytelling, he has documented over 500+ weddings, creating visual poetry that couples treasure for a lifetime.</p>
+          </div>
+          <div class="owner-stats">
+            <div class="stat-item">
+              <div class="stat-number">500+</div>
+              <div class="stat-label">Weddings Captured</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">10+</div>
+              <div class="stat-label">Years Experience</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">100%</div>
+              <div class="stat-label">Client Satisfaction</div>
+            </div>
+          </div>
+          <div class="owner-credentials">
+            <div class="credential-item">
+              <span class="credential-icon">🏆</span>
+              <span>Award-winning Wedding Photographer</span>
+            </div>
+            <div class="credential-item">
+              <span class="credential-icon">🎓</span>
+              <span>Certified in Advanced Cinematography</span>
+            </div>
+            <div class="credential-item">
+              <span class="credential-icon">📸</span>
+              <span>Featured in Wedding Photography Magazine</span>
+            </div>
+          </div>
+          <div class="owner-quote">
+            <blockquote>
+              "Every wedding tells a unique story. My mission is to capture not just the moments, but the emotions, the laughter, the tears of joy - creating a visual legacy that will be cherished for generations."
+            </blockquote>
+            <cite>- Kamendra, Founder & Lead Photographer</cite>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="testimonials section-padding" id="testimonials">
+    <div class="container">
+      <h2 class="section-title">What Couples Say</h2>
+      
+      <div class="testimonial-slider-container">
+        <button class="testimonial-nav prev" onclick="slideTestimonials(-1)">
+          <span>❮</span>
+        </button>
+        
+        <div class="testimonial-slider" id="testimonial-slider"></div>
+        
+        <button class="testimonial-nav next" onclick="slideTestimonials(1)">
+          <span>❯</span>
+        </button>
+      </div>
+      
+      <!-- Slider Dots -->
+      <div class="testimonial-dots" id="testimonial-dots"></div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="contact section-padding" id="contact">
+    <div class="container">
+      <div class="contact-content">
+        <div class="contact-info">
+          <h2>Let's Create Magic Together</h2>
+          <p>Ready to capture your love story?</p>
+          <div class="contact-details">
+            <div class="contact-item">
+              <span>📧</span> studiokamendra@gmail.com
+            </div>
+            <div class="contact-item">
+              <span>📍</span> Janakpur, Nepal 
+            </div>
+             <div class="contact-item">
+              <span> </span>  +977 9801316135 | +977 9812005200 
+            </div>
+          </div>
+        </div>
+        <form class="contact-form" id="contact-form">
+          <input type="text" name="name" placeholder="Your Name" required>
+          <input type="email" name="email" placeholder="Your Email" required>
+          <input type="tel" name="phone" placeholder="Phone Number">
+          <input type="date" name="wedding_date" placeholder="Wedding Date">
+          <textarea name="message" placeholder="Tell us about your dream wedding..." rows="5"></textarea>
+          <button type="submit" class="btn-primary full-width">Send Enquiry</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2026 Wedding Studio. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
