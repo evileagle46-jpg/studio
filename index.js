@@ -1,15 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const http = require('http');
-const { Server } = require('socket.io');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { Pool } = require('pg');
 const path = require('path');
 const fs = require('fs');
 const helmet = require('helmet');
-const morgan = require('morgan');
-const { google } = require('googleapis');
 require('dotenv').config();
 
 // Local uploads dir (used only in local dev, not on Vercel)
@@ -26,28 +22,26 @@ cloudinary.config({
 
 // Google Drive API Configuration
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-const drive = google.drive({ version: 'v3', auth: GOOGLE_API_KEY });
 
 // PostgreSQL (Neon)
 const pool = new Pool({
-  connectionString: 'postgresql://neondb_owner:npg_s7LwWp1HXPIC@ep-red-mountain-ahv23ezx-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+  connectionString: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_s7LwWp1HXPIC@ep-red-mountain-ahv23ezx-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
   ssl: { rejectUnauthorized: false }
 });
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
 
-app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP for now to avoid blocking requests
-  crossOriginEmbedderPolicy: false
-}));
+// No-op emit (socket.io removed for Vercel serverless compatibility)
+const io = { emit: () => {} };
+
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(cors());
-app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
-app.use('/uploads', express.static(uploadsDir));
+if (!process.env.VERCEL) {
+  app.use('/uploads', express.static(uploadsDir));
+}
 
 // Configure multer - memoryStorage works on both local and Vercel
 const upload = multer({ storage: multer.memoryStorage() });
@@ -125,29 +119,19 @@ function extractYouTubeId(url) {
   return { type: null, id: null };
 }
 
-// Fetch images from Google Drive folder
+// Fetch images from Google Drive folder using REST API (no SDK needed)
 async function fetchDriveImages(folderId) {
-  if (!folderId || !GOOGLE_API_KEY) {
-    return [];
-  }
-  
+  if (!folderId || !GOOGLE_API_KEY) return [];
   try {
-    const response = await drive.files.list({
-      q: `'${folderId}' in parents and mimeType contains 'image/' and trashed=false`,
-      fields: 'files(id, name, mimeType, thumbnailLink, webContentLink, webViewLink)',
-      orderBy: 'createdTime desc',
-      pageSize: 100
-    });
-    
-    // For each file, we need to make it publicly accessible
-    // The best way is to use the file ID with a direct link
-    return response.data.files.map(file => ({
+    const q = encodeURIComponent(`'${folderId}' in parents and mimeType contains 'image/' and trashed=false`);
+    const url = `https://www.googleapis.com/drive/v3/files?q=${q}&key=${GOOGLE_API_KEY}&fields=files(id,name,mimeType,webViewLink)&orderBy=createdTime+desc&pageSize=100`;
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.error) { console.error('Drive API error:', data.error.message); return []; }
+    return (data.files || []).map(file => ({
       id: file.id,
       name: file.name,
-      // Use Google Drive's direct image serving URL
-      // This requires the file to be publicly shared
       url: `https://lh3.googleusercontent.com/d/${file.id}`,
-      // Fallback URLs
       thumbnail: `https://drive.google.com/thumbnail?id=${file.id}&sz=w400`,
       viewLink: file.webViewLink,
       downloadUrl: `https://drive.google.com/uc?export=download&id=${file.id}`
@@ -157,18 +141,6 @@ async function fetchDriveImages(folderId) {
     return [];
   }
 }
-
-// 🔌 Real-time Socket
-io.on('connection', (socket) => {
-  console.log('👤 Connected:', socket.id);
-  socket.on('update-photos', () => io.emit('photos-updated'));
-  socket.on('update-videos', () => io.emit('videos-updated'));
-  socket.on('update-testimonials', () => io.emit('testimonials-updated'));
-  socket.on('update-media-categories', () => io.emit('media-categories-updated'));
-  socket.on('update-hero-images', () => io.emit('hero-images-updated'));
-  socket.on('update-pricing', () => io.emit('pricing-updated'));
-  socket.on('update-about', () => io.emit('about-updated'));
-});
 
 // ========================================
 // MEDIA CATEGORIES API (Google Drive & YouTube)
@@ -1145,9 +1117,11 @@ app.post('/api/update-owner-info', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Wedding Studio: http://localhost:${PORT}`);
-  console.log(`📊 Admin: http://localhost:${PORT}/admin.html`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Wedding Studio: http://localhost:${PORT}`);
+    console.log(`📊 Admin: http://localhost:${PORT}/admin.html`);
+  });
+}
 
 module.exports = app;
