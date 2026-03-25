@@ -1,4 +1,4 @@
-const socket = io();
+const socket = (typeof io !== "undefined") ? io() : { on: () => {}, emit: () => {}, disconnect: () => {} };
 
 // DOM Elements
 const heroCarousel = document.getElementById('hero-carousel');

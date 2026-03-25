@@ -1,4 +1,4 @@
-const socket = io();
+const socket = (typeof io !== "undefined") ? io() : { on: () => {}, emit: () => {}, disconnect: () => {} };
 
 // Load all about page data
 loadAboutData();

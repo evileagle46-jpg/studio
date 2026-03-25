@@ -12,9 +12,9 @@ const morgan = require('morgan');
 const { google } = require('googleapis');
 require('dotenv').config();
 
-// Create uploads directory if it doesn't exist
+// Local uploads dir (used only in local dev, not on Vercel)
 const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
+if (!process.env.VERCEL && !fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
@@ -49,20 +49,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname)));
 app.use('/uploads', express.static(uploadsDir));
 
-// Configure multer for file uploads - NO SIZE LIMITS
-const upload = multer({ 
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, uploadsDir);
-    },
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      const ext = path.extname(file.originalname);
-      cb(null, uniqueSuffix + ext);
-    }
-  })
-  // No size limits - accepts any file size
-});
+// Configure multer - memoryStorage works on both local and Vercel
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Test DB
 pool.query('SELECT NOW()', (err) => {
@@ -520,20 +508,17 @@ app.post('/api/pricing', async (req, res) => {
 // Upload pricing image
 app.post('/api/pricing/upload-image', upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    // Validate file type
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-    if (!allowedTypes.includes(req.file.mimetype)) {
-      // Delete the uploaded file
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'Only PNG and JPG images are allowed' });
-    }
-    
-    const imageUrl = `/uploads/${req.file.filename}`;
-    res.json({ success: true, url: imageUrl });
+    if (!allowedTypes.includes(req.file.mimetype)) return res.status(400).json({ error: 'Only PNG and JPG images are allowed' });
+
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { resource_type: 'image', folder: 'wedding/pricing' },
+        (error, result) => error ? reject(error) : resolve(result)
+      ).end(req.file.buffer);
+    });
+    res.json({ success: true, url: result.secure_url });
   } catch (err) {
     console.error('Error uploading pricing image:', err);
     res.status(500).json({ error: err.message });
@@ -543,19 +528,16 @@ app.post('/api/pricing/upload-image', upload.single('file'), async (req, res) =>
 // Upload pricing PDF
 app.post('/api/pricing/upload-pdf', upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    // Validate file type
-    if (req.file.mimetype !== 'application/pdf') {
-      // Delete the uploaded file
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'Only PDF files are allowed' });
-    }
-    
-    const pdfUrl = `/uploads/${req.file.filename}`;
-    res.json({ success: true, url: pdfUrl });
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (req.file.mimetype !== 'application/pdf') return res.status(400).json({ error: 'Only PDF files are allowed' });
+
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { resource_type: 'raw', folder: 'wedding/pricing', format: 'pdf' },
+        (error, result) => error ? reject(error) : resolve(result)
+      ).end(req.file.buffer);
+    });
+    res.json({ success: true, url: result.secure_url });
   } catch (err) {
     console.error('Error uploading pricing PDF:', err);
     res.status(500).json({ error: err.message });
@@ -630,18 +612,17 @@ app.delete('/api/equipment/:id', async (req, res) => {
 // Upload equipment image
 app.post('/api/equipment/upload-image', upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-    if (!allowedTypes.includes(req.file.mimetype)) {
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'Only PNG and JPG images are allowed' });
-    }
-    
-    const imageUrl = `/uploads/${req.file.filename}`;
-    res.json({ success: true, url: imageUrl });
+    if (!allowedTypes.includes(req.file.mimetype)) return res.status(400).json({ error: 'Only PNG and JPG images are allowed' });
+
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { resource_type: 'image', folder: 'wedding/equipment' },
+        (error, result) => error ? reject(error) : resolve(result)
+      ).end(req.file.buffer);
+    });
+    res.json({ success: true, url: result.secure_url });
   } catch (err) {
     console.error('Error uploading equipment image:', err);
     res.status(500).json({ error: err.message });
@@ -918,45 +899,10 @@ app.get('/api/photos', async (req, res) => {
 
 app.post('/api/upload-photo', upload.single('file'), async (req, res) => {
   try {
-    // Check if file was uploaded
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     const { category, title } = req.body;
-    
-    if (!category || !title) {
-      return res.status(400).json({ error: 'Category and title are required' });
-    }
-
-    // Check if Cloudinary is configured
-    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      console.log('Cloudinary not configured. Saving file locally.');
-      // Fallback: Save file locally
-      const fileExt = path.extname(req.file.originalname || '.jpg');
-      const fileName = `${Date.now()}-${title.replace(/\s+/g, '-')}${fileExt}`;
-      const filePath = path.join(uploadsDir, fileName);
-      
-      // Save file to disk
-      fs.writeFileSync(filePath, req.file.buffer);
-      
-      // Create URL for the uploaded file
-      const fileUrl = `/uploads/${fileName}`;
-      
-      try {
-        await pool.query('INSERT INTO photos (url, title, category) VALUES ($1, $2, $3)', 
-          [fileUrl, title, category]);
-        io.emit('photos-updated');
-        return res.json({ success: true, url: fileUrl, message: 'Photo saved locally.' });
-      } catch (dbErr) {
-        console.error('Database error:', dbErr);
-        // Clean up file if database insert fails
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-        return res.status(500).json({ error: 'Database error: ' + dbErr.message });
-      }
-    }
+    if (!category || !title) return res.status(400).json({ error: 'Category and title are required' });
 
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
@@ -965,15 +911,9 @@ app.post('/api/upload-photo', upload.single('file'), async (req, res) => {
       ).end(req.file.buffer);
     });
 
-    try {
-      await pool.query('INSERT INTO photos (url, title, category) VALUES ($1, $2, $3)', 
-        [result.secure_url, title, category]);
-      io.emit('photos-updated');
-      res.json({ success: true, url: result.secure_url });
-    } catch (dbErr) {
-      console.error('Database error:', dbErr);
-      res.status(500).json({ error: 'Database error: ' + dbErr.message });
-    }
+    await pool.query('INSERT INTO photos (url, title, category) VALUES ($1, $2, $3)', [result.secure_url, title, category]);
+    io.emit('photos-updated');
+    res.json({ success: true, url: result.secure_url });
   } catch (err) {
     console.error('Upload photo error:', err);
     res.status(500).json({ error: err.message || 'Failed to upload photo' });
@@ -993,129 +933,30 @@ app.get('/api/videos', async (req, res) => {
 });
 
 app.post('/api/upload-video', upload.single('file'), async (req, res) => {
-  console.log('=== VIDEO UPLOAD REQUEST ===');
-  console.log('Headers:', req.headers);
-  console.log('Body keys:', Object.keys(req.body));
-  console.log('File info:', req.file ? {
-    originalname: req.file.originalname,
-    mimetype: req.file.mimetype,
-    size: req.file.size
-  } : 'No file');
-
   try {
-    // Check if file was uploaded
-    if (!req.file) {
-      console.log('ERROR: No file uploaded');
-      return res.status(400).json({ error: 'No video file uploaded' });
-    }
+    if (!req.file) return res.status(400).json({ error: 'No video file uploaded' });
 
     const { title, description, autoplay } = req.body;
-    console.log('Form data:', { title, description, autoplay });
-    
-    if (!title) {
-      console.log('ERROR: No title provided');
-      return res.status(400).json({ error: 'Title is required' });
-    }
+    if (!title) return res.status(400).json({ error: 'Title is required' });
 
-    // Validate file type
     const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/webm'];
     if (!allowedTypes.includes(req.file.mimetype)) {
-      console.log('ERROR: Invalid file type:', req.file.mimetype);
-      return res.status(400).json({ error: 'Invalid file type. Please upload MP4, AVI, MOV, WMV, or WebM files only.' });
+      return res.status(400).json({ error: 'Invalid file type. Please upload MP4, AVI, MOV, WMV, or WebM.' });
     }
 
-    // Check file size (50MB limit)
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (req.file.size > maxSize) {
-      console.log('ERROR: File too large:', req.file.size);
-      return res.status(400).json({ error: 'Video file too large. Maximum size is 50MB.' });
-    }
-
-    console.log(`Processing video: ${title}, Size: ${(req.file.size / 1024 / 1024).toFixed(2)}MB`);
-
-    // Check if Cloudinary is configured
-    const cloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET;
-    console.log('Cloudinary configured:', cloudinaryConfigured);
-
-    if (!cloudinaryConfigured) {
-      console.log('Using local storage fallback...');
-      // Fallback: Save file locally
-      const fileExt = path.extname(req.file.originalname || '.mp4');
-      const fileName = `${Date.now()}-${title.replace(/\s+/g, '-')}${fileExt}`;
-      const filePath = path.join(uploadsDir, fileName);
-      
-      console.log('Saving to:', filePath);
-      
-      // Save file to disk
-      fs.writeFileSync(filePath, req.file.buffer);
-      
-      // Create URL for the uploaded file
-      const fileUrl = `/uploads/${fileName}`;
-      
-      try {
-        console.log('Inserting into database...');
-        await pool.query(
-          'INSERT INTO videos (url, title, description, autoplay) VALUES ($1, $2, $3, $4)',
-          [fileUrl, title, description || '', autoplay === 'true']
-        );
-        console.log('Database insert successful');
-        io.emit('videos-updated');
-        return res.json({ success: true, url: fileUrl, message: 'Video saved locally.' });
-      } catch (dbErr) {
-        console.error('Database error:', dbErr);
-        // Clean up file if database insert fails
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-        return res.status(500).json({ error: 'Database error: ' + dbErr.message });
-      }
-    }
-
-    console.log('Uploading to Cloudinary...');
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
-        { 
-          resource_type: 'video', 
-          folder: 'wedding/videos',
-          public_id: title?.replace(/\s+/g, '_'),
-          chunk_size: 6000000 // 6MB chunks for large files
-        },
-        (error, result) => {
-          if (error) {
-            console.error('Cloudinary error:', error);
-            reject(error);
-          } else {
-            console.log('Cloudinary upload successful:', result.secure_url);
-            resolve(result);
-          }
-        }
+        { resource_type: 'video', folder: 'wedding/videos', public_id: title?.replace(/\s+/g, '_'), chunk_size: 6000000 },
+        (error, result) => error ? reject(error) : resolve(result)
       ).end(req.file.buffer);
     });
 
-    try {
-      console.log('Inserting Cloudinary URL into database...');
-      await pool.query(
-        'INSERT INTO videos (url, title, description, autoplay) VALUES ($1, $2, $3, $4)',
-        [result.secure_url, title, description || '', autoplay === 'true']
-      );
-      console.log('Database insert successful');
-      io.emit('videos-updated');
-      res.json({ success: true, url: result.secure_url });
-    } catch (dbErr) {
-      console.error('Database error:', dbErr);
-      res.status(500).json({ error: 'Database error: ' + dbErr.message });
-    }
+    await pool.query('INSERT INTO videos (url, title, description, autoplay) VALUES ($1, $2, $3, $4)',
+      [result.secure_url, title, description || '', autoplay === 'true']);
+    io.emit('videos-updated');
+    res.json({ success: true, url: result.secure_url });
   } catch (err) {
-    console.error('=== VIDEO UPLOAD ERROR ===');
-    console.error('Error type:', err.constructor.name);
-    console.error('Error message:', err.message);
-    console.error('Error stack:', err.stack);
-    
-    // Handle specific Cloudinary errors
-    if (err.message && err.message.includes('File size too large')) {
-      return res.status(400).json({ error: 'Video file too large for Cloudinary. Please use a smaller file.' });
-    }
-    
+    console.error('Video upload error:', err);
     res.status(500).json({ error: err.message || 'Failed to upload video' });
   }
 });
@@ -1197,94 +1038,32 @@ app.post('/api/admin/login', (req, res) => {
 // 👤 OWNER PROFILE MANAGEMENT
 app.post('/api/upload-owner-photo', upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'Please upload a valid image file' });
+
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { resource_type: 'image', folder: 'wedding/owner', public_id: 'owner-photo', overwrite: true,
+          transformation: [{ width: 800, height: 1000, crop: 'limit', quality: 'auto' }] },
+        (error, result) => error ? reject(error) : resolve(result)
+      ).end(req.file.buffer);
+    });
+    const photoUrl = result.secure_url;
+
+    const existingProfile = await pool.query('SELECT id FROM owner_profile LIMIT 1');
+    if (existingProfile.rows.length > 0) {
+      await pool.query('UPDATE owner_profile SET photo_url = $1, updated_at = NOW() WHERE id = $2', [photoUrl, existingProfile.rows[0].id]);
+    } else {
+      await pool.query(
+        'INSERT INTO owner_profile (name, title, experience, weddings_captured, description, quote, photo_url) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        ['Kamendra', 'Your Wedding Story Architect', 10, 500,
+          'With over a decade of experience capturing love stories across Nepal, Kamendra brings an artistic vision and passionate dedication to every wedding.',
+          'Every wedding tells a unique story. My mission is to capture not just the moments, but the emotions, the laughter, the tears of joy.',
+          photoUrl]
+      );
     }
 
-    // Validate file type
-    if (!req.file.mimetype.startsWith('image/')) {
-      return res.status(400).json({ error: 'Please upload a valid image file' });
-    }
-
-    console.log(`Uploading owner photo: ${req.file.originalname}, Size: ${(req.file.size / 1024 / 1024).toFixed(2)}MB`);
-
-    let photoUrl = null;
-
-    // Check if Cloudinary is configured
-    const cloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET;
-
-    if (cloudinaryConfigured) {
-      console.log('Uploading to Cloudinary...');
-      try {
-        const result = await new Promise((resolve, reject) => {
-          cloudinary.uploader.upload_stream(
-            { 
-              resource_type: 'image', 
-              folder: 'wedding/owner',
-              public_id: 'owner-photo',
-              overwrite: true,
-              transformation: [
-                { width: 800, height: 1000, crop: 'limit', quality: 'auto' }
-              ]
-            },
-            (error, result) => error ? reject(error) : resolve(result)
-          ).end(req.file.buffer);
-        });
-        photoUrl = result.secure_url;
-        console.log('Cloudinary upload successful:', photoUrl);
-      } catch (cloudinaryError) {
-        console.error('Cloudinary upload failed, falling back to local storage:', cloudinaryError);
-      }
-    }
-
-    // Fallback to local storage if Cloudinary fails or isn't configured
-    if (!photoUrl) {
-      console.log('Using local storage...');
-      const fileName = 'owner-photo.jpg';
-      const filePath = path.join(uploadsDir, fileName);
-      
-      // Save file to disk (overwrite existing)
-      fs.writeFileSync(filePath, req.file.buffer);
-      photoUrl = `/uploads/${fileName}`;
-      console.log('Local storage successful:', filePath);
-    }
-
-    // Update or insert owner profile in database
-    try {
-      // Check if owner profile exists
-      const existingProfile = await pool.query('SELECT id FROM owner_profile LIMIT 1');
-      
-      if (existingProfile.rows.length > 0) {
-        // Update existing profile
-        await pool.query(
-          'UPDATE owner_profile SET photo_url = $1, updated_at = NOW() WHERE id = $2',
-          [photoUrl, existingProfile.rows[0].id]
-        );
-      } else {
-        // Insert new profile with default values
-        await pool.query(
-          'INSERT INTO owner_profile (name, title, experience, weddings_captured, description, quote, photo_url) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-          [
-            'Kamendra',
-            'Your Wedding Story Architect',
-            10,
-            500,
-            'With over a decade of experience capturing love stories across Nepal, Kamendra brings an artistic vision and passionate dedication to every wedding.',
-            'Every wedding tells a unique story. My mission is to capture not just the moments, but the emotions, the laughter, the tears of joy.',
-            photoUrl
-          ]
-        );
-      }
-      
-      console.log('Owner photo URL saved to database:', photoUrl);
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      return res.status(500).json({ error: 'Failed to save photo URL to database: ' + dbError.message });
-    }
-    
-    // Emit socket event to update main website
     io.emit('owner-updated');
-    
     res.json({ success: true, message: 'Owner photo uploaded successfully', url: photoUrl });
   } catch (err) {
     console.error('Owner photo upload error:', err);
@@ -1294,21 +1073,8 @@ app.post('/api/upload-owner-photo', upload.single('file'), async (req, res) => {
 
 app.delete('/api/delete-owner-photo', async (req, res) => {
   try {
-    // Update database to remove photo URL
     await pool.query('UPDATE owner_profile SET photo_url = NULL, updated_at = NOW()');
-    
-    // Try to delete local file if it exists
-    const filePath = path.join(uploadsDir, 'owner-photo.jpg');
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      console.log('Local owner photo deleted');
-    }
-    
-    console.log('Owner photo removed from database');
-    
-    // Emit socket event to update main website
     io.emit('owner-updated');
-    
     res.json({ success: true, message: 'Owner photo removed successfully' });
   } catch (err) {
     console.error('Owner photo delete error:', err);
@@ -1383,3 +1149,5 @@ server.listen(PORT, () => {
   console.log(`🚀 Wedding Studio: http://localhost:${PORT}`);
   console.log(`📊 Admin: http://localhost:${PORT}/admin.html`);
 });
+
+module.exports = app;
