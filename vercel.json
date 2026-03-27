@@ -8,16 +8,20 @@
   ],
   "routes": [
     {
-      "src": "/(.*\\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))",
-      "dest": "/$1"
+      "src": "/api/(.*)",
+      "dest": "/index.js"
     },
     {
-      "src": "/(.*\\.html)",
-      "dest": "/$1"
+      "src": "/socket.io/(.*)",
+      "dest": "/index.js"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
     },
     {
       "src": "/(.*)",
-      "dest": "/index.js"
+      "dest": "/$1"
     }
   ]
 }
