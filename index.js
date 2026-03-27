@@ -71,6 +71,25 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
+// Google Drive image proxy - avoids CORS/hotlink issues on Vercel
+app.get('/api/drive-proxy', async (req, res) => {
+  const { id } = req.query;
+  if (!id) return res.status(400).json({ error: 'Missing file id' });
+  try {
+    const response = await fetch(`https://drive.google.com/uc?export=view&id=${id}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    if (!response.ok) return res.status(response.status).send('Failed to fetch image');
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    const buffer = await response.arrayBuffer();
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ========================================
 // HELPER FUNCTIONS
 // ========================================
@@ -140,8 +159,8 @@ async function fetchDriveImages(folderId) {
     return (data.files || []).map(file => ({
       id: file.id,
       name: file.name,
-      url: `https://lh3.googleusercontent.com/d/${file.id}`,
-      thumbnail: `https://drive.google.com/thumbnail?id=${file.id}&sz=w400`,
+      url: `/api/drive-proxy?id=${file.id}`,
+      thumbnail: `/api/drive-proxy?id=${file.id}`,
       viewLink: file.webViewLink,
       downloadUrl: `https://drive.google.com/uc?export=download&id=${file.id}`
     }));
@@ -358,8 +377,8 @@ app.get('/api/hero-drive-images', async (req, res) => {
     const images = (data.files || []).map(file => ({
       id: file.id,
       name: file.name,
-      url: `https://drive.google.com/thumbnail?id=${file.id}&sz=w2000`,
-      thumbnail: file.thumbnailLink
+      url: `/api/drive-proxy?id=${file.id}`,
+      thumbnail: `/api/drive-proxy?id=${file.id}`
     }));
     
     res.json({ images });
@@ -649,7 +668,7 @@ app.get('/api/bts-images', async (req, res) => {
     const images = (data.files || []).map(file => ({
       id: file.id,
       name: file.name,
-      url: `https://drive.google.com/thumbnail?id=${file.id}&sz=w1000`
+      url: `/api/drive-proxy?id=${file.id}`
     }));
     
     res.json({ images });
