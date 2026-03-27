@@ -39,19 +39,18 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files - use process.cwd() which works correctly on Vercel
-const staticDir = process.cwd();
-app.use(express.static(staticDir));
+// Serve all static files from project root
+app.use(express.static(__dirname));
 if (!process.env.VERCEL) {
   app.use('/uploads', express.static(uploadsDir));
 }
 
-// Explicit HTML routes for Vercel
-app.get('/', (req, res) => res.sendFile(path.join(staticDir, 'index.html')));
-app.get('/about', (req, res) => res.sendFile(path.join(staticDir, 'about.html')));
-app.get('/pricing', (req, res) => res.sendFile(path.join(staticDir, 'pricing.html')));
-app.get('/gallery', (req, res) => res.sendFile(path.join(staticDir, 'gallery.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(staticDir, 'admin.html')));
+// Root and page routes
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/about.html', (req, res) => res.sendFile(path.join(__dirname, 'about.html')));
+app.get('/pricing.html', (req, res) => res.sendFile(path.join(__dirname, 'pricing.html')));
+app.get('/gallery.html', (req, res) => res.sendFile(path.join(__dirname, 'gallery.html')));
+app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
 // Configure multer - memoryStorage works on both local and Vercel
 const upload = multer({ storage: multer.memoryStorage() });
