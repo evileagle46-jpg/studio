@@ -38,10 +38,20 @@ app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname)));
+
+// Serve static files - use process.cwd() which works correctly on Vercel
+const staticDir = process.cwd();
+app.use(express.static(staticDir));
 if (!process.env.VERCEL) {
   app.use('/uploads', express.static(uploadsDir));
 }
+
+// Explicit HTML routes for Vercel
+app.get('/', (req, res) => res.sendFile(path.join(staticDir, 'index.html')));
+app.get('/about', (req, res) => res.sendFile(path.join(staticDir, 'about.html')));
+app.get('/pricing', (req, res) => res.sendFile(path.join(staticDir, 'pricing.html')));
+app.get('/gallery', (req, res) => res.sendFile(path.join(staticDir, 'gallery.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(staticDir, 'admin.html')));
 
 // Configure multer - memoryStorage works on both local and Vercel
 const upload = multer({ storage: multer.memoryStorage() });
