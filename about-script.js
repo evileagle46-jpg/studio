@@ -10,12 +10,13 @@ socket.on('about-updated', () => {
 });
 
 async function loadAboutData() {
-  await Promise.all([
-    loadEquipment(),
-    loadBTSImages(),
-    loadBTSVideos()
-  ]);
-  
+  // Load equipment first (visible above fold), defer BTS content
+  loadEquipment();
+  setTimeout(() => {
+    loadBTSImages();
+    loadBTSVideos();
+  }, 300);
+}  
   // Initialize counter animation after data loads
   initCounterAnimation();
 }
@@ -195,13 +196,26 @@ async function loadBTSImages() {
     if (data.images && data.images.length > 0) {
       grid.innerHTML = data.images.map((img, index) => `
         <div class="bts-image-card" style="--index: ${index}" onclick="openLightbox('${img.url}', '${img.name}')">
-          <img src="${img.url}" alt="${img.name}" loading="lazy">
+          <img data-src="${img.url}" src="" alt="${img.name}" loading="lazy"
+               style="background:#1a1a2e; min-height:200px;"
+               onerror="this.style.display='none'">
           <div class="bts-image-overlay">
             <h4>${img.name}</h4>
             <span>Behind The Scenes</span>
           </div>
         </div>
       `).join('');
+      // Lazy load with IntersectionObserver
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            const img = e.target;
+            img.src = img.dataset.src;
+            observer.unobserve(img);
+          }
+        });
+      }, { rootMargin: '200px' });
+      grid.querySelectorAll('img[data-src]').forEach(img => observer.observe(img));
     } else {
       grid.innerHTML = `
         <div class="empty-state" style="grid-column: 1/-1;">

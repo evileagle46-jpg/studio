@@ -61,7 +61,34 @@ pool.query('SELECT NOW()', (err) => {
   else console.log('✅ PostgreSQL (Neon) connected!');
 });
 
-// Test endpoint to check database
+// Google Drive image proxy - fast streaming with 7-day cache
+app.get('/api/drive-proxy', async (req, res) => {
+  const { id } = req.query;
+  if (!id) return res.status(400).send('Missing id');
+  try {
+    // Try direct thumbnail first (fastest, no redirect)
+    const thumbUrl = `https://drive.google.com/thumbnail?id=${id}&sz=w1200&authuser=0`;
+    const response = await fetch(thumbUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0',
+      },
+      redirect: 'follow'
+    });
+    if (!response.ok) return res.status(response.status).send('Failed');
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    // Only proxy actual images, not HTML error pages
+    if (contentType.includes('text/html')) return res.status(403).send('Not public');
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    const { Readable } = require('stream');
+    Readable.fromWeb(response.body).pipe(res);
+  } catch (err) {
+    res.status(500).send('Error');
+  }
+});
+
+// Test endpoint
 app.get('/api/test-db', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW() as time, COUNT(*) as photo_count FROM photos');
@@ -69,28 +96,7 @@ app.get('/api/test-db', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
-
-// Google Drive image proxy - avoids CORS/hotlink issues on Vercel
-app.get('/api/drive-proxy', async (req, res) => {
-  const { id } = req.query;
-  if (!id) return res.status(400).json({ error: 'Missing file id' });
-  try {
-    const response = await fetch(`https://drive.google.com/uc?export=view&id=${id}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    if (!response.ok) return res.status(response.status).send('Failed to fetch image');
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    const buffer = await response.arrayBuffer();
-    res.send(Buffer.from(buffer));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ========================================
+});// ========================================
 // HELPER FUNCTIONS
 // ========================================
 

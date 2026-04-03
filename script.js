@@ -29,7 +29,15 @@ socket.on('owner-updated', () => {
 });
 
 async function loadAllData() {
-  await Promise.all([loadHeroImages(), loadMediaGalleries(), loadPhotos(), loadVideos(), loadTestimonials()]);
+  // Load critical above-fold content first, then rest
+  loadHeroImages();
+  loadPhotos();
+  // Defer below-fold content slightly so page renders fast
+  setTimeout(() => {
+    loadMediaGalleries();
+    loadVideos();
+    loadTestimonials();
+  }, 300);
 }
 
 // Load hero carousel images from separate Google Drive folder
@@ -818,74 +826,30 @@ function createClientPlaceholder(name) {
 // Hero Carousel
 function initHeroCarousel(images) {
   if (!images || images.length === 0) return;
-  
+
   let current = 0;
   let isTransitioning = false;
-  
-  // Preload all images first
-  const preloadedImages = [];
-  let loadedCount = 0;
-  
-  images.forEach((imgSrc, index) => {
-    const img = new Image();
-    img.onload = () => {
-      loadedCount++;
-      preloadedImages[index] = imgSrc;
-      
-      // Start carousel when all images are loaded
-      if (loadedCount === images.length) {
-        startCarousel();
-      }
-    };
-    img.onerror = () => {
-      loadedCount++;
-      // Use placeholder for failed images
-      preloadedImages[index] = 'https://via.placeholder.com/1920x1080/0a0a0a/D4AF37?text=Wedding+Studio';
-      
-      if (loadedCount === images.length) {
-        startCarousel();
-      }
-    };
-    img.src = imgSrc;
-  });
-  
-  function startCarousel() {
-    // Create carousel HTML with proper positioning
-    heroCarousel.innerHTML = preloadedImages.map((img, i) => 
-      `<img src="${img}" class="hero-slide" style="
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        opacity: ${i === 0 ? 1 : 0};
-        transition: opacity 1.5s ease-in-out;
-      ">`
-    ).join('');
 
-    // Only start interval if we have multiple images
-    if (preloadedImages.length > 1) {
-      setInterval(() => {
-        if (isTransitioning) return;
-        
-        isTransitioning = true;
-        const slides = heroCarousel.querySelectorAll('.hero-slide');
-        
-        // Fade out current
-        slides[current].style.opacity = '0';
-        
-        // Move to next
-        current = (current + 1) % preloadedImages.length;
-        
-        // Fade in next after a brief delay
-        setTimeout(() => {
-          slides[current].style.opacity = '1';
-          isTransitioning = false;
-        }, 100);
-        
-      }, 4000); // Slightly faster transition
-    }
+  // Render immediately — no preloading, browser handles it
+  heroCarousel.innerHTML = images.map((img, i) =>
+    `<img src="${img}" class="hero-slide" loading="${i === 0 ? 'eager' : 'lazy'}" style="
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      object-fit: cover; opacity: ${i === 0 ? 1 : 0}; transition: opacity 1.5s ease-in-out;
+    " onerror="this.style.display='none'">`
+  ).join('');
+
+  if (images.length > 1) {
+    setInterval(() => {
+      if (isTransitioning) return;
+      isTransitioning = true;
+      const slides = heroCarousel.querySelectorAll('.hero-slide');
+      slides[current].style.opacity = '0';
+      current = (current + 1) % images.length;
+      setTimeout(() => {
+        slides[current].style.opacity = '1';
+        isTransitioning = false;
+      }, 100);
+    }, 4000);
   }
 }
 

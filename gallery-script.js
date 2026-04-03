@@ -25,6 +25,7 @@ async function loadAlbums() {
         <div class="album-card" style="--index: ${index}" onclick="openAlbum(${album.id}, '${escapeHtml(album.title)}', '${escapeHtml(album.description)}')">
           <div class="album-cover">
             <img src="${album.cover_image || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=400&fit=crop'}" 
+                 loading="lazy"
                  alt="${album.title}"
                  onerror="this.src='https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=400&fit=crop'">
             <div class="album-photo-count">
@@ -68,9 +69,22 @@ async function openAlbum(albumId, title, description) {
     if (currentAlbumPhotos.length > 0) {
       photosGrid.innerHTML = currentAlbumPhotos.map((photo, index) => `
         <div class="album-photo" style="--index: ${index}" onclick="openLightbox(${index})">
-          <img src="${photo.url}" alt="${photo.name}" loading="lazy">
+          <img data-src="${photo.url}" src="" alt="${photo.name}" loading="lazy"
+               style="background:#1a1a2e; min-height:150px;"
+               onerror="this.style.display='none'">
         </div>
       `).join('');
+      // IntersectionObserver lazy load
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            const img = e.target;
+            img.src = img.dataset.src;
+            observer.unobserve(img);
+          }
+        });
+      }, { rootMargin: '200px' });
+      photosGrid.querySelectorAll('img[data-src]').forEach(img => observer.observe(img));
     } else {
       photosGrid.innerHTML = `
         <div class="empty-state">
